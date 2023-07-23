@@ -5,7 +5,7 @@ def mu_to_p0(mu, source, h): #mu is an array of attenuation coefficients, source
     
     for yi in range(mu.shape[0]):
         for xi in range(mu.shape[1]):
-            m = (yi - ys) / (xi - xs)
+            m = (ys - yi) / (xs - xi)
             b = ys - m * xs
             
             d = ((xi-xs)**2 + (yi-ys)**2) **0.5 #euclidean distance between source and target
@@ -19,6 +19,6 @@ def mu_to_p0(mu, source, h): #mu is an array of attenuation coefficients, source
                 y = int(np.floor(ys + (point_i * dy))) # ^
 
                 if 0 <= x < mu.shape[0] and 0 <= y < mu.shape[1]:
-                    P[x,y] += mu[x,y]
+                    P[y,x] += mu[y,x]
                 
     return mu * np.exp(-P), P

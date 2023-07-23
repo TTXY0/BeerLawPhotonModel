@@ -12,7 +12,7 @@ def gauss_density_pattern(size_x, size_y, amplitude, sigma):
 mu = gauss_density_pattern(100, 100, 50, 20)
 
             
-P0, P = (mu_to_p0.mu_to_p0(mu, (101,101), 1)) # source point at bottom right of image
+P0, P = (mu_to_p0.mu_to_p0(mu, (-1,-1), .1))
 
 
 fig, ax = plt.subplots(1, 3, figsize=(12, 4))
