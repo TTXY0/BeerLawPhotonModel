@@ -5,7 +5,6 @@ def mu_to_p0(mu, source, h): #mu is an array of attenuation coefficients, source
     
     for yi in range(mu.shape[0]):
         for xi in range(mu.shape[1]):
-            print("\n\npixel: ", xi, yi)
             m = (yi - ys) / (xi - xs)
             b = ys - m * xs
             
@@ -18,7 +17,7 @@ def mu_to_p0(mu, source, h): #mu is an array of attenuation coefficients, source
             for point_i in range(n):
                 x = int(np.floor(xs + (point_i * dx))) #The pixel at which the point is located
                 y = int(np.floor(ys + (point_i * dy))) # ^
-                print("Point: ", x,y)
+
                 if 0 <= x < mu.shape[0] and 0 <= y < mu.shape[1]:
                     P[x,y] += mu[x,y]
                 
