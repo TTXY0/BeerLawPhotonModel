@@ -3,29 +3,49 @@ import matplotlib.pyplot as plt
 import mu_to_p0
 
 
-# def gauss_density_pattern(size_x, size_y, amplitude, sigma):
-#     x, y = np.meshgrid(np.arange(size_x), np.arange(size_y))
-#     x0, y0 = size_x // 2, size_y // 2  # Center of the ball
-#     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
-#     return np.array(density)
+def gauss_density_pattern(xp, yp, amplitude, sigma):
+    x, y = np.meshgrid(xp, yp)
+    x0 = xp.mean()
+    y0 = yp.mean()
+    density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
+    return density
 
-# mu = gauss_density_pattern(100, 100, 50, 20)
+Lx = 2
+Ly = 2
 
-mu = np.ones((2,2), dtype=int)
+nx = 64
+ny = 64
 
-xp = np.linspace(0,1,2)
-yp = np.linspace(0,1,2)
-print(xp, yp)
-
-P0, P, pixelsx, pixelsy= mu_to_p0.mu_to_p0(mu, (-1 ,-1), 1, xp, yp)
+dx = Lx/nx
+dy = Ly/ny
 
 
-fig, ax = plt.subplots(1, 3, figsize=(12, 4))
-ax[1].scatter(pixelsx, pixelsy)
+
+
+xc = np.linspace(-Lx/2+dx/2, Lx/2-dx/2,nx)
+yc = np.linspace(-Ly/2+dy/2,Ly/2 -dy/2,ny)
+
+mu = gauss_density_pattern(xc, yc, 50, Lx/30)
+# mu = np.ones((ny,nx), dtype=float)
+
+
+print(xc, yc)
+
+P0, a, pixelsx, pixelsy= mu_to_p0.mu_to_p0(mu, (-Lx/2 ,-Ly/2), dx/4, xc, yc)
+
+print(a[0,0])
+print(a[ny//2, nx//2])
+
+
+fig, ax = plt.subplots(1, 4, figsize=(12, 4))
+ax[1].scatter(pixelsx[nx//2, ny//2], pixelsy[nx//2., ny//2])
 ax[0].set_title("Attenuation Matrix")
-ax[1].set_title("'P'")
-ax[2].set_title("P0")
-ax[0].imshow(mu)
-ax[1].imshow(P)
-ax[2].imshow(P0)
+ax[1].set_title("'a'")
+ax[3].set_title("P0")
+ax[2].set_title("fluence")
+ax[0].imshow(mu, cmap = "gray")
+ax[1].imshow(a, cmap = "gray")
+ax[3].imshow(P0, cmap = "gray")
+ax[2].imshow(np.exp(-a), cmap = "gray")
+#lt.colorbar(ax)
 plt.show()
