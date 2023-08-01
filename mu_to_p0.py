@@ -55,11 +55,13 @@ def mu_to_p0_cone(mu, source, h, xp: np.array, yp: np.array, theta, direction): 
     
     #Mask for "flashlight"
     mask =  np.zeros_like(mu)
-    for yi in range(mask.shape[0]):
-        for xi in range(mask.shape[1]):
+    for index_y in range(mask.shape[0]):
+        for index_x in range(mask.shape[1]):
+            xi = xp[index_x] #physical coordinates
+            yi = yp[index_y]
             point_angle = np.arctan2 (yi - ys, xi - xs) - direction
-            if np.abs(point_angle) <= theta/2: #include max distance? 
-                mask[yi, xi] = 1
+            if np.abs(point_angle) <= theta/2: 
+                mask[index_y, index_x] = 1
 
     p0 = np.zeros_like(mu)
     for index_y in range(mu.shape[0]):
