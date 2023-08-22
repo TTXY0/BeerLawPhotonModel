@@ -168,4 +168,98 @@ def mu_to_p0_cone_3d(mu, source, h, xp: np.array, yp: np.array, zp: np.array, di
             
     return p0, a, mask
 
+            # if np.cross(source_direction_vector, sample_direction_vector)[2] > 0: 
+            #     orthogonal_direction_vector = (source_direction_vector[1], -source_direction_vector[0])
+            # elif np.cross(source_direction_vector, sample_direction_vector)[2] < 0:
+            #     orthogonal_direction_vector = (-source_direction_vector[1], source_direction_vector[0])
+            
+def mu_to_p0_line(mu, source_start, source_direction, source_length, ray_direction, h, xp, yp):
+    assert mu.shape[1] == xp.shape[0]
+    assert mu.shape[0] == yp.shape[0]
+    
+    xs, ys = source_start
+    xe = xs + source_length * np.cos(source_direction)
+    ye = ys + source_length * np.sin(source_direction)
+    p_source_vector = np.array(xe - xs, ye-xs) #physical source vector
+    print(p_source_vector)
+    
+    dpx = xp[1] - xp[0]  # spacing between sampling points
+    dpy = yp[1] - yp[0]
+    
+    
+    a = np.zeros_like(mu)
+    
+    
+    xs_pixel = int( np.floor((xs - xp[0]) / dpx) )
+    ys_pixel = int( np.floor((ys - yp[0]) / dpy) )
+    xe_pixel = int( np.floor((xe - xp[0]) / dpx) )
+    ye_pixel = int( np.floor((ye - yp[0]) / dpy) )
+    
+    mask = np.zeros_like(mu)
+    for index_y in range(mask.shape[0]):
+        for index_x in range(mask.shape[1]):
+            # index_y = 20
+            # index_x = 40
+
+            source_vector = np.array([xe_pixel - xs_pixel, ye_pixel - ys_pixel])
+            point_vector = np.array([index_x - xs_pixel, index_y - ys_pixel])
+
+            projection = (np.dot(point_vector, source_vector) / np.dot(source_vector, source_vector)) * source_vector
+            projection = projection + np.array([xs_pixel, ys_pixel]) 
+
+            unit_vector = np.array([index_x - projection[0], index_y - projection[1]])
+            unit_vector = (unit_vector / np.linalg.norm(unit_vector))
+
+            if not np.array_equal(unit_vector, ray_direction) or not (np.min([xs_pixel, xe_pixel]) <= projection[0] <= np.max([xe_pixel, xs_pixel]) and np.min([ys_pixel, ye_pixel]) <= projection[1] <= np.max([ye_pixel, ys_pixel])):
+                # print(np.allclose(unit_vector, ray_direction))
+                # print(unit_vector, ray_direction)
+                continue
+            else: 
+                print("true")
+                mask[index_y,index_x] = 1
+                
+    p0 = np.zeros_like(mu)
+    for index_y in range(mu.shape[0]):
+            for index_x in range(mu.shape[1]):
+                if mask[index_y , index_x] == 1:
+                    
+                    xi = xp[index_x] #physical coordinates
+                    yi = yp[index_y]
+                    
+                    point_vector = np.array([xi - xp[0], yi - yp[0]])
+
+                    #print(np.dot(point_vector, p_source_vector))
+  
+                    if not np.array_equal(np.dot(point_vector, p_source_vector), np.array([0,0])): #handle vertical line sources
+                        projection = (np.dot(point_vector, p_source_vector) / np.dot(source_vector, p_source_vector)) * p_source_vector
+                        projection = projection + np.array([xp[0], yp[0]])
+                        
+                        source = projection #the projection becomes a "source" on the line
+                        
+                    else: 
+                        #print(p_source_vector)
+                        source = np.array([xs, (index_y * dpy) + yp[0]])
+                        
+                    xs = source[0]
+                    ys = source[1]
+                    
+                    d = ((xi-xs)**2 + (yi-ys)**2) **0.5 #euclidean distance between source and target
+                    n = int(d/h) + 1 # of discrete point
+
+                    dx =  (xi - xs) / (n - 1) #physical space dx
+                    dy = (yi - ys) / (n - 1)
+                        
+                    
+                    for point_i in range(n):
+                        i_x = int(np.floor( (xs + point_i * dx - xp[0] + 0.51*dpx ) / dpx ) ) #pixel indices
+                        i_y = int(np.floor( (ys + point_i * dy - yp[0] + 0.51*dpy ) / dpy ) ) 
+                        
+                        if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
+                            #a[index_x, index_x] = .0
+                            a[index_y, index_x] += mu[i_y,i_x] * h
+                            
+                    p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
+
+    return p0, a, mask
+            
 
