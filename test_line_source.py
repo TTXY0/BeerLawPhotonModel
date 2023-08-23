@@ -27,12 +27,14 @@ mu = gauss_density_pattern(xc, yc, 50, Lx/10)
 
 #For a ray_direction to the "right" of the light source
 
-source_start = (-.75, - .25) #x,y
-source_len = (.5)
-source_direction = np.pi/2 #direction cant be 0
+source_start = (-1, -.3) #x,y
+source_len = (1)
+source_direction = np.pi/3 #direction cant be 0
 
 right_ray_direction = np.cos(-np.pi/2 + source_direction), np.sin(-np.pi/2 + source_direction)
-ray_direction = right_ray_direction
+ray_direction = right_ray_direction 
+
+
 print(right_ray_direction)
 P0, a, mask = mu_to_p0.mu_to_p0_line(mu, (source_start), source_direction, source_len, ray_direction, dx/4, xc, yc)
 
@@ -42,9 +44,9 @@ P0, a, mask = mu_to_p0.mu_to_p0_line(mu, (source_start), source_direction, sourc
 # print(a[ny//2, nx//2])
 
 
-plt.imshow(P0)
+plt.imshow(mask)
 plt.show()
-plt.imshow(a)
+plt.imshow(P0)
 plt.show()
 
 #fig, ax = plt.subplots(1, 4, figsize=(12, 4))

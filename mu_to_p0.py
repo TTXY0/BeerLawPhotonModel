@@ -195,27 +195,51 @@ def mu_to_p0_line(mu, source_start, source_direction, source_length, ray_directi
     xe_pixel = int( np.floor((xe - xp[0]) / dpx) )
     ye_pixel = int( np.floor((ye - yp[0]) / dpy) )
     
+    
+    
     mask = np.zeros_like(mu)
+    #print(xs_pixel, ys_pixel, xe_pixel, ye_pixel)
+    mask[ys_pixel, xs_pixel] = 1
+    mask[ye_pixel, xe_pixel] = 1
+    
     for index_y in range(mask.shape[0]):
         for index_x in range(mask.shape[1]):
-            # index_y = 20
-            # index_x = 40
+            # index_y = 50
+            # index_x = 30
 
             source_vector = np.array([xe_pixel - xs_pixel, ye_pixel - ys_pixel])
             point_vector = np.array([index_x - xs_pixel, index_y - ys_pixel])
+            #(y-b)/m = x
+            perp_slope = -(source_vector[0] / source_vector[1])
+            #b = -mx1 + y1
+            b_start = -perp_slope * xs_pixel + ys_pixel
+            b_end = -perp_slope * xe_pixel + ye_pixel
+            
+            x_start = (index_y - b_start) / perp_slope
+            x_end = (index_y - b_end) / perp_slope
+            
 
             projection = (np.dot(point_vector, source_vector) / np.dot(source_vector, source_vector)) * source_vector
             projection = projection + np.array([xs_pixel, ys_pixel]) 
-
+            
+            
+            
             unit_vector = np.array([index_x - projection[0], index_y - projection[1]])
-            unit_vector = (unit_vector / np.linalg.norm(unit_vector))
-
-            if not np.array_equal(unit_vector, ray_direction) or not (np.min([xs_pixel, xe_pixel]) <= projection[0] <= np.max([xe_pixel, xs_pixel]) and np.min([ys_pixel, ye_pixel]) <= projection[1] <= np.max([ye_pixel, ys_pixel])):
-                # print(np.allclose(unit_vector, ray_direction))
-                # print(unit_vector, ray_direction)
+            if np.allclose(unit_vector, np.array([0,0])):
+                continue
+            else:
+                unit_vector = (unit_vector / np.linalg.norm(unit_vector))
+            #print("skjflakjsjkla",np.dot(point_vector / np.linalg.norm(point_vector), p_source_vector / np.linalg.norm(p_source_vector)))
+            #print((np.dot(point_vector/np.linalg.norm(point_vector), source_vector/np.linalg.norm(source_vector))))
+            if not np.allclose(unit_vector, ray_direction, rtol = .1) or not np.min([x_end, x_start]) <= projection[0] <= np.max([x_start, x_end]):# or np.array_equal(np.dot(point_vector, p_source_vector), np.array([0,0])):
+                #this is to filter out the points matches that do not math ray-direction, points not in between the bounding box of the "line" light source,
+                #and that the point is not parallel to the light source, which will throw an error below
+                #print(np.allclose(unit_vector, ray_direction))
+                #print(unit_vector, ray_direction)
+                #print(not np.array_equal(unit_vector, ray_direction) or not (np.min([xs_pixel, xe_pixel]) <= projection[0] <= np.max([xe_pixel, xs_pixel]) and np.min([ys_pixel, ye_pixel]) <= projection[1] <= np.max([ye_pixel, ys_pixel])))
                 continue
             else: 
-                print("true")
+                #print("true")
                 mask[index_y,index_x] = 1
                 
     p0 = np.zeros_like(mu)
@@ -230,20 +254,25 @@ def mu_to_p0_line(mu, source_start, source_direction, source_length, ray_directi
 
                     #print(np.dot(point_vector, p_source_vector))
   
-                    if not np.array_equal(np.dot(point_vector, p_source_vector), np.array([0,0])): #handle vertical line sources
+                    if not np.allclose(np.dot(point_vector, p_source_vector), np.array([0,0])): #handle vertical line sources
+                        print(point_vector, source_vector)
+                        print("dpt product", np.dot(source_vector, p_source_vector))
                         projection = (np.dot(point_vector, p_source_vector) / np.dot(source_vector, p_source_vector)) * p_source_vector
+                        print(projection)
                         projection = projection + np.array([xp[0], yp[0]])
-                        
                         source = projection #the projection becomes a "source" on the line
                         
                     else: 
                         #print(p_source_vector)
                         source = np.array([xs, (index_y * dpy) + yp[0]])
                         
+                    # print(source)
                     xs = source[0]
                     ys = source[1]
-                    
+                    # print(source[0])
+                    # (print(xi, yi, xs, ys))
                     d = ((xi-xs)**2 + (yi-ys)**2) **0.5 #euclidean distance between source and target
+                    # print(d, h)
                     n = int(d/h) + 1 # of discrete point
 
                     dx =  (xi - xs) / (n - 1) #physical space dx
