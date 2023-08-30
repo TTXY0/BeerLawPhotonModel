@@ -27,16 +27,20 @@ mu = gauss_density_pattern(xc, yc, 50, Lx/10)
 
 #For a ray_direction to the "right" of the light source
 
-source_start = (-1, -.3) #x,y
-source_len = (1)
-source_direction = np.pi/3 #direction cant be 0
+source_start = (-.3, .5) #x,y
+source_end = (-.95, -.5) #
+# source_len = (.5)
+# source_direction = np.pi/4 #direction cant be 0 or pi (180)
 
+source_direction = np.arccos( (source_end[0]-source_start[0]) / (source_end[1] - source_start[1]))
 right_ray_direction = np.cos(-np.pi/2 + source_direction), np.sin(-np.pi/2 + source_direction)
+print(source_direction, right_ray_direction)
+
 ray_direction = right_ray_direction 
 
 
 print(right_ray_direction)
-P0, a, mask = mu_to_p0.mu_to_p0_line(mu, (source_start), source_direction, source_len, ray_direction, dx/4, xc, yc)
+P0, a, mask = mu_to_p0.mu_to_p0_line(mu, (source_start), (source_end), ray_direction, dx/4, xc, yc)
 
 
 # print(mu.shape, xc.shape, yc.shape)
@@ -44,9 +48,11 @@ P0, a, mask = mu_to_p0.mu_to_p0_line(mu, (source_start), source_direction, sourc
 # print(a[ny//2, nx//2])
 
 
-plt.imshow(mask)
+plt.imshow(a, origin='lower')
 plt.show()
-plt.imshow(P0)
+plt.imshow(mask * np.exp(-a), origin='lower')
+plt.show()
+plt.imshow(P0, origin='lower')
 plt.show()
 
 #fig, ax = plt.subplots(1, 4, figsize=(12, 4))
