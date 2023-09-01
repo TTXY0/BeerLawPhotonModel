@@ -194,10 +194,10 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
     a = np.zeros_like(mu)
     
     
-    xs_pixel = int( np.floor((xs - xp[0]) / dpx) )
-    ys_pixel = int( np.floor((ys - yp[0]) / dpy) )
-    xe_pixel = int( np.floor((xe - xp[0]) / dpx) )
-    ye_pixel = int( np.floor((ye - yp[0]) / dpy) )
+    xs_pixel = int( np.floor((xs - xp[0] + .51*dpx ) / dpx) )
+    ys_pixel = int( np.floor((ys - yp[0] + .51*dpy) / dpy) )
+    xe_pixel = int( np.floor((xe - xp[0] + .51*dpx ) / dpx) )
+    ye_pixel = int( np.floor((ye - yp[0] + .51*dpy) / dpy) )
     
     
     
@@ -222,10 +222,13 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
             x_start = (index_y - b_start) / perp_slope
             x_end = (index_y - b_end) / perp_slope
             
-
+            #projection defined by pixel coordinates
             projection = (np.dot(point_vector, source_vector) / (np.linalg.norm(source_vector) ** 2) ) * source_vector
             projection = projection + np.array([xs_pixel, ys_pixel]) 
             
+            #DRAW 
+            if 0<= int(projection[0]) < mu.shape[0] and 0<= int(projection[1]) < mu.shape[1]:
+                a[int(projection[1]), int(projection[0])] = 111
             
             
             unit_vector = np.array([index_x - projection[0], index_y - projection[1]])
@@ -263,11 +266,11 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
                         #print("dpt product", np.dot(source_vector, p_source_vector))
                         
                     
-                    #projection = (np.dot(p_source_vector, p_point_vector) / (np.linalg.norm(p_point_vector) ** 2)) * p_point_vector
+                    #projection defined by physical coordinates
                     projection = (np.dot(p_point_vector, p_source_vector) / (np.linalg.norm(p_source_vector) ** 2)) * p_source_vector
                     #projection = projection + np.array([ys, xs])
                     source = projection #the projection becomes a "source" on the line
-                    print(source)
+                    #print(source)
                     # else: 
                     #     #print(p_source_vector)
                     #     source = np.array([xs, (index_y * dpy) + yp[0]])
@@ -278,7 +281,7 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
                     source_ix = (int(np.floor( (xs_point - xp[0] + .51*dpx) / dpx ) ))
                     source_iy = (int(np.floor( (ys_point - yp[0] + .51 *dpy) / dpy ) ))
                     
-                    print(source_iy, source_ix)
+                    #DRAW
                     if 0<= source_iy < mu.shape[0] and 0<= source_ix < mu.shape[1]:
                         a[source_iy, source_ix] = 111
                     
