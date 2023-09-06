@@ -170,11 +170,6 @@ def mu_to_p0_cone_3d(mu, source, h, xp: np.array, yp: np.array, zp: np.array, di
             
     return p0, a, mask
 
-            # if np.cross(source_direction_vector, sample_direction_vector)[2] > 0: 
-            #     orthogonal_direction_vector = (source_direction_vector[1], -source_direction_vector[0])
-            # elif np.cross(source_direction_vector, sample_direction_vector)[2] < 0:
-            #     orthogonal_direction_vector = (-source_direction_vector[1], source_direction_vector[0])
-
 def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
@@ -275,4 +270,79 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
                         a[index_y, index_x] += mu[i_y,i_x] * h
                         
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
+    return p0, a, mask
+
+def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction_vector, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+    
+    xs, ys, zs = source_start
+    xe, ye, ze = source_end
+    
+    dpx = xp[1] - xp[0]   
+    dpy = yp[1] - yp[0] 
+    dpz = zp[1] - zp[0]   
+    
+    a = np.zeros_like(mu)
+    
+    source_start_pixel = [int(x) for x in (source_start - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
+    source_end_pixel = [int(x) for x in (source_end - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
+    
+    # print(source_start_pixel)
+    # print(source_end_pixel)
+    # print(mu.shape)
+    mask = np.zeros_like(mu)
+    mask[source_start_pixel[2], source_start_pixel[1], source_start_pixel[0]] = 50
+    mask[source_end_pixel[2] , source_end_pixel[1] , source_end_pixel[0]] = 50
+        
+    source_vector = (source_end - source_start)
+    source_vector_nomalized = source_vector / np.linalg.norm(source_vector)
+    
+    ray_direction_vector_normalized = ray_direction_vector / np.linalg.norm(ray_direction_vector)
+    
+    # perp_vector = np.cross(ray_direction_vector_nomalized, source_vector_nomalized)
+    # perp_vector_normalized = perp_vector / np.linalg.norm(perp_vector)
+
+    for index_z in range(mask.shape[0]):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                xi = xp[index_x]
+                yi = yp[index_y]
+                zi = zp[index_z]
+                
+                point_vector_shift = np.array([zi, yi, xi]) - source_start
+                point_vector_normalized = point_vector_shift / np.linalg.norm(point_vector_shift)
+                
+                projection = (np.dot(point_vector_normalized, source_vector) / (np.linalg.norm(source_vector)**2)) * source_vector
+                projection = projection + (source_start)
+                
+                projection_shift_vector = (projection - source_start)
+                projection_vector_normalized = projection_shift_vector / np.linalg.norm(projection_shift_vector)
+                
+                ray_direction_vector_at_projection = (ray_direction_vector_normalized + projection)
+                ray_direction_vector_at_projection_shift = (ray_direction_vector_at_projection - source_start)
+                ray_direction_vector_at_projection_normalized = ray_direction_vector_at_projection_shift / np.linalg.norm(ray_direction_vector_at_projection_shift)
+                
+                
+                
+                #print(np.dot(ray_direction_vector_at_projection_normalized, point_vector_normalized))
+                angle_at_point = np.arccos(np.dot(ray_direction_vector_at_projection_normalized, point_vector_normalized)) / (np.linalg.norm(ray_direction_vector_at_projection_normalized) * np.linalg.norm(point_vector_normalized))
+                # print(angle_at_point)
+                
+                if angle_at_point < theta / 2:
+                    print("true")
+                    mask[index_z][index_y][index_x] = 20
+                
+                
+                
+                projection_pixel = [int(x) for x in (projection - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
+                mask[projection_pixel[2], projection_pixel[1], projection_pixel[0]] = 20
+                
+                # ray_vector_pixel = [int(x) for x in (ray_direction_vector_at_projection - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
+                # mask[ray_vector_pixel[2], ray_vector_pixel[1], ray_vector_pixel[0]] = 20
+                
+                 
+                    
+    p0 = np.zeros_like(mu)
     return p0, a, mask
