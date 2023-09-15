@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mu_to_p0
 import plotly.graph_objs as go
+import scipy.io as sio
 
 
 def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
@@ -16,9 +17,9 @@ Lx = 2
 Ly = 2
 Lz = 2
 
-nx = 16
-ny = 16
-nz = 16
+nx = 64
+ny = 64
+nz = 64
 
 dx = Lx / nx
 dy = Ly / ny
@@ -30,17 +31,25 @@ zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
 mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
 
-source_start = np.array([-.5, -.5, -.5])
-source_end = np.array([-.5, -.5, .5])
+source_start = np.array([-1.5, -1.5, -.5]) #vertical source
+source_end = np.array([-1.5, -1.5, .5])
 
-ray_direction_vector = np.array([1 ,1, 0])
-theta = np.pi/6
+#ray direction is defined as the rotational angle around the z-axis in radians
+ray_direction = np.pi / 4 #np.pi/10
+theta = np.pi/10
 
-P0, a, mask = mu_to_p0.mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction_vector, theta, dx/2, xc, yc, zc)
+P0, a, mask = mu_to_p0.mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc)
 X, Y, Z = np.meshgrid(xc, yc, zc)
-# marker_size = 30 * P0 / np.max(P0)
 
-# #P0
+matlab_filename = "wedge.mat"
+
+# Create a dictionary to store the data with a variable name (e.g., 'volume_data')
+data_dict = {'volume_data': P0}
+
+# Save the dictionary as a .mat file
+sio.savemat(matlab_filename, data_dict)
+
+#P0
 # X, Y, Z = np.meshgrid(xc, yc, zc)
 # marker_size = 30 * P0 / np.max(P0)
 # P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
@@ -86,18 +95,18 @@ X, Y, Z = np.meshgrid(xc, yc, zc)
 
 
 #mask
-marker_size = 30 * mask / np.max(mask)
-P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-                                   mode='markers', 
-                                   marker=dict(size=marker_size.flatten(),
-                                               color=mask.flatten(),
-                                               colorscale='gray',
-                                               opacity=1,
-                                               colorbar=dict(title='Value'))
-                                   )
-layout = go.Layout(scene=dict(aspectmode='data'), title= "Mask")
-fig3 = go.Figure(data=[P0_Scatter], layout=layout)
-fig3.show()
+# marker_size = 30 * mask / np.max(mask)
+# P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
+#                                    mode='markers', 
+#                                    marker=dict(size=marker_size.flatten(),
+#                                                color=mask.flatten(),
+#                                                colorscale='gray',
+#                                                opacity=1,
+#                                                colorbar=dict(title='Value'))
+#                                    )
+# layout = go.Layout(scene=dict(aspectmode='data'), title= "Mask")
+# fig3 = go.Figure(data=[P0_Scatter], layout=layout)
+# fig3.show()
 
 
 

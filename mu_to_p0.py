@@ -31,7 +31,6 @@ def mu_to_p0(mu, source, h, xp: np.array, yp: np.array): #mu is an array of atte
                  
     return mu * np.exp(-a), a 
 
-
 def mu_to_p0_cone(mu, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
     assert mu.shape[1]==xp.shape[0]
@@ -272,7 +271,7 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
     return p0, a, mask
 
-def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction_vector, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
+def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
     assert mu.shape[2] == xp.shape[0]
     assert mu.shape[1] == yp.shape[0]
     assert mu.shape[0] == zp.shape[0]
@@ -285,64 +284,46 @@ def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction_vector, theta,
     dpz = zp[1] - zp[0]   
     
     a = np.zeros_like(mu)
-    
-    source_start_pixel = [int(x) for x in (source_start - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
-    source_end_pixel = [int(x) for x in (source_end - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
-    
-    # print(source_start_pixel)
-    # print(source_end_pixel)
-    # print(mu.shape)
     mask = np.zeros_like(mu)
-    mask[source_start_pixel[2], source_start_pixel[1], source_start_pixel[0]] = 50
-    mask[source_end_pixel[2] , source_end_pixel[1] , source_end_pixel[0]] = 50
-        
-    source_vector = (source_end - source_start)
-    source_vector_nomalized = source_vector / np.linalg.norm(source_vector)
+    p0 = np.zeros_like(mu)
     
-    ray_direction_vector_normalized = ray_direction_vector / np.linalg.norm(ray_direction_vector)
-    
-    # perp_vector = np.cross(ray_direction_vector_nomalized, source_vector_nomalized)
-    # perp_vector_normalized = perp_vector / np.linalg.norm(perp_vector)
-
     for index_z in range(mask.shape[0]):
         for index_y in range(mask.shape[1]):
             for index_x in range(mask.shape[2]):
-                xi = xp[index_x]
+                xi = xp[index_x] #physical coordinates
                 yi = yp[index_y]
-                zi = zp[index_z]
                 
-                point_vector_shift = np.array([zi, yi, xi]) - source_start
-                point_vector_normalized = point_vector_shift / np.linalg.norm(point_vector_shift)
+                point_angle = np.arctan2 (yi - ys, xi - xs) - ray_direction
                 
-                projection = (np.dot(point_vector_normalized, source_vector) / (np.linalg.norm(source_vector)**2)) * source_vector
-                projection = projection + (source_start)
-                
-                projection_shift_vector = (projection - source_start)
-                projection_vector_normalized = projection_shift_vector / np.linalg.norm(projection_shift_vector)
-                
-                ray_direction_vector_at_projection = (ray_direction_vector_normalized + projection)
-                ray_direction_vector_at_projection_shift = (ray_direction_vector_at_projection - source_start)
-                ray_direction_vector_at_projection_normalized = ray_direction_vector_at_projection_shift / np.linalg.norm(ray_direction_vector_at_projection_shift)
-                
-                
-                
-                #print(np.dot(ray_direction_vector_at_projection_normalized, point_vector_normalized))
-                angle_at_point = np.arccos(np.dot(ray_direction_vector_at_projection_normalized, point_vector_normalized)) / (np.linalg.norm(ray_direction_vector_at_projection_normalized) * np.linalg.norm(point_vector_normalized))
-                # print(angle_at_point)
-                
-                if angle_at_point < theta / 2:
-                    print("true")
-                    mask[index_z][index_y][index_x] = 20
-                
-                
-                
-                projection_pixel = [int(x) for x in (projection - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
-                mask[projection_pixel[2], projection_pixel[1], projection_pixel[0]] = 20
-                
-                # ray_vector_pixel = [int(x) for x in (ray_direction_vector_at_projection - np.array([xp[0], yp[0], zp[0]]) + .51 * np.array([dpx, dpy, dpz])) / np.array([dpx, dpy, dpz])]
-                # mask[ray_vector_pixel[2], ray_vector_pixel[1], ray_vector_pixel[0]] = 20
-                
-                 
+                if np.abs(point_angle) <= theta/2: 
+                    mask[index_y, index_x] = 1
+    
+    for index_z in range(mask.shape[0]):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                if mask[index_z, index_y , index_x] == 1:
                     
-    p0 = np.zeros_like(mu)
+                    xi = xp[index_x]
+                    yi = yp[index_y]
+                    zi = zp[index_z]
+                    
+                    source_z = np.array([xs, ys, zi])
+                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2 + (zi - source_z[2])**2)**0.5
+                    
+                    n = int(d / h) + 1
+                    
+                    dx = (xi - source_z[0]) / (n - 1)
+                    dy = (yi - source_z[1]) / (n - 1)
+                    dz = (zi - source_z[2]) / (n - 1)
+                    
+                    for point_i in range(n):
+                        i_x = int(np.floor((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx))
+                        i_y = int(np.floor((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy))
+                        i_z = int(np.floor((source_z[2] + 0.51 * dpz) / dpz))
+
+                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1] and 0 <= i_z < mu.shape[0]:
+                            a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                        
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
+                
     return p0, a, mask
