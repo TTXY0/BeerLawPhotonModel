@@ -1,9 +1,7 @@
 import numpy as np
 from numba import jit, cuda
-
-import numpy as np
 import math
-from numba import cuda
+
 
 @cuda.jit
 def mu_to_p0_kernel(mu, source, h, xp, yp, result, a, dpx, dpy):
@@ -33,7 +31,6 @@ def mu_to_p0_kernel(mu, source, h, xp, yp, result, a, dpx, dpy):
         result[ty, tx] = mu[ty, tx] * math.exp(-a[ty, tx])
 
 def mu_to_p0_gpu(mu, source, h, xp, yp):
-    xs, ys = source
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
 
@@ -51,6 +48,12 @@ def mu_to_p0_gpu(mu, source, h, xp, yp):
     mu_to_p0_kernel[blocks_per_grid, threads_per_block](mu, source, h, xp, yp, result, a, dpx, dpy)
 
     return result, a
+
+
+
+#####################################################
+
+
 
 @cuda.jit
 def mu_to_p0_3d_kernel(mu, source, h, xp, yp, zp, result, a, dpx, dpy, dpz):
@@ -83,7 +86,6 @@ def mu_to_p0_3d_kernel(mu, source, h, xp, yp, zp, result, a, dpx, dpy, dpz):
         result[tz, ty, tx] = mu[tz, ty, tx] * math.exp(-a[tz, ty, tx])
 
 def mu_to_p0_3d_gpu(mu, source, h, xp, yp, zp):
-    xs, ys, zs = source
     assert mu.shape[2] == xp.shape[0]
     assert mu.shape[1] == yp.shape[0]
     assert mu.shape[0] == zp.shape[0]
@@ -91,9 +93,14 @@ def mu_to_p0_3d_gpu(mu, source, h, xp, yp, zp):
     dpx = xp[1] - xp[0]
     dpy = yp[1] - yp[0]
     dpz = zp[1] - zp[0]
-
-    a = np.zeros_like(mu)
-    result = np.zeros_like(mu)
+    
+    dev_mu = cuda.to_device(mu)
+    dev_source = cuda.to_device(source)
+    dev_xp = cuda.to_device(xp)
+    dev_yp = cuda.to_device(yp)
+    dev_zp = cuda.to_device(zp)
+    dev_result = cuda.to_device(np.zeros_like(mu, dtype=np.float32))
+    dev_a = cuda.to_device(np.zeros_like(mu, dtype=np.float32))
 
     threads_per_block = (8, 8, 8)  # Adjust based on GPU ability
     blocks_per_grid_x = (mu.shape[2] + threads_per_block[0] - 1) // threads_per_block[0]
@@ -101,9 +108,15 @@ def mu_to_p0_3d_gpu(mu, source, h, xp, yp, zp):
     blocks_per_grid_z = (mu.shape[0] + threads_per_block[2] - 1) // threads_per_block[2]
     blocks_per_grid = (blocks_per_grid_x, blocks_per_grid_y, blocks_per_grid_z)
 
-    mu_to_p0_3d_kernel[blocks_per_grid, threads_per_block](mu, source, h, xp, yp, zp, result, a, dpx, dpy, dpz)
+    mu_to_p0_3d_kernel[blocks_per_grid, threads_per_block](
+        dev_mu, dev_source, h, dev_xp, dev_yp, dev_zp, dev_result, dev_a, dpx, dpy, dpz
+    )
 
-    return result, a
+    return dev_result.copy_to_host(), dev_a.copy_to_host()
+
+
+#####################################################
+
 
 @cuda.jit
 def mu_to_p0_cone_kernel(mu, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy):
@@ -137,17 +150,19 @@ def mu_to_p0_cone_kernel(mu, source, h, xp, yp, theta, direction, result_p0, res
         result_p0[ty, tx] = mask[ty, tx] * mu[ty, tx] * math.exp(-result_a[ty, tx])
 
 def mu_to_p0_cone_gpu(mu, source, h, xp, yp, theta, direction):
-    xs, ys = source
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
     
     dpx = xp[1] - xp[0]
     dpy = yp[1] - yp[0]
     
-    a = np.zeros_like(mu)
-    result_p0 = np.zeros_like(mu)
-    result_a = np.zeros_like(mu)
-    mask = np.zeros_like(mu)
+    dev_mu = cuda.to_device(mu)
+    dev_source = cuda.to_device(source)
+    dev_xp = cuda.to_device(xp)
+    dev_yp = cuda.to_device(yp)
+    dev_result_p0 = cuda.to_device(np.zeros_like(mu, dtype=np.float32))
+    dev_result_a = cuda.to_device(np.zeros_like(mu, dtype=np.float32))
+    dev_mask = cuda.to_device(np.zeros_like(mu, dtype=np.int32))
 
     threads_per_block = (16, 16)  # Adjust block size based on your GPU's capabilities
     blocks_per_grid_x = (mu.shape[1] + threads_per_block[0] - 1) // threads_per_block[0]
@@ -155,7 +170,86 @@ def mu_to_p0_cone_gpu(mu, source, h, xp, yp, theta, direction):
     blocks_per_grid = (blocks_per_grid_x, blocks_per_grid_y)
 
     mu_to_p0_cone_kernel[blocks_per_grid, threads_per_block](
-        mu, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy
+        dev_mu, dev_source, h, dev_xp, dev_yp, theta, direction, dev_result_p0, dev_result_a, dev_mask, dpx, dpy
     )
 
-    return result_p0, result_a, mask
+    return dev_result_p0.copy_to_host(), dev_result_a.copy_to_host(), dev_mask.copy_to_host()
+
+
+#####################################################
+
+
+@cuda.jit
+def mu_to_p0_cone_3d_kernel(mu, source, h, xp, yp, zp, direction_vector, theta, a, p0, dpx, dpy, dpz):
+    xs, ys, zs = source
+    index_x, index_y, index_z = cuda.grid(3)
+    
+    if (index_x < mu.shape[2]) and (index_y < mu.shape[1]) and (index_z < mu.shape[0]):
+        xi = xp[index_x]
+        yi = yp[index_y]
+        zi = zp[index_z]
+
+        #vector shift
+        dx = xi - xs
+        dy = yi - ys
+        dz = zi - zs
+
+        dot_product = direction_vector[0] * dx + direction_vector[1] * dy + direction_vector[2] * dz
+        
+        dir_magnitude = (direction_vector[0]**2 + direction_vector[1]**2 + direction_vector[2]**2)**0.5
+        shift_magnitude = (dx**2 + dy**2 + dz**2)**0.5
+
+        if dot_product > 0.0 and dir_magnitude > 0.0 and shift_magnitude > 0.0:
+            point_angle = np.arccos(dot_product / (dir_magnitude * shift_magnitude))
+        else:
+            point_angle = 0.0
+
+        if point_angle <= theta / 2:
+            d = shift_magnitude  # Use the precomputed magnitude
+            n = int(d / h) + 1
+            dx /= (n - 1)
+            dy /= (n - 1)
+            dz /= (n - 1)
+
+            for point_i in range(n):
+                i_x = int((xs + point_i * dx - xp[0] + 0.51 * dpx) / dpx)
+                i_y = int((ys + point_i * dy - yp[0] + 0.51 * dpy) / dpy)
+                i_z = int((zs + point_i * dz - zp[0] + 0.51 * dpz) / dpz)
+
+                if (0 <= i_x < mu.shape[2]) and (0 <= i_y < mu.shape[1]) and (0 <= i_z < mu.shape[0]):
+                    a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * math.exp(-a[index_z, index_y, index_x])
+
+def mu_to_p0_cone_3d_gpu(mu, source, h, xp, yp, zp, direction_vector, theta):
+    xs, ys, zs = source
+
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+
+    dpx = xp[1] - xp[0]
+    dpy = yp[1] - yp[0]
+    dpz = zp[1] - zp[0]
+
+    dev_mu = cuda.to_device(mu)
+    dev_source = cuda.to_device(source)
+    dev_xp = cuda.to_device(xp)
+    dev_yp = cuda.to_device(yp)
+    dev_zp = cuda.to_device(zp)
+    dev_a = cuda.to_device(np.zeros_like(mu, dtype=np.float32))
+    dev_p0 = cuda.to_device(np.zeros_like(mu, dtype =np.float32))
+    dev_direction_vector = cuda.to_device(direction_vector)
+    
+    
+
+    threadsperblock = (16, 16, 1)
+    blockspergrid_x = (mu.shape[2] + threadsperblock[0] - 1) // threadsperblock[0]
+    blockspergrid_y = (mu.shape[1] + threadsperblock[1] - 1) // threadsperblock[1]
+    blockspergrid_z = (mu.shape[0] + threadsperblock[2] - 1) // threadsperblock[2]
+    blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
+
+    mu_to_p0_cone_3d_kernel[blockspergrid, threadsperblock](dev_mu, dev_source, h, dev_xp, dev_yp, dev_zp, dev_direction_vector, theta, dev_a, dev_p0, dpx, dpy, dpz)
+    
+
+    return dev_a.copy_to_host(), dev_p0.copy_to_host()
+

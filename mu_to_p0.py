@@ -170,11 +170,6 @@ def mu_to_p0_cone_3d(mu, source, h, xp: np.array, yp: np.array, zp: np.array, di
             
     return p0, a, mask
 
-            # if np.cross(source_direction_vector, sample_direction_vector)[2] > 0: 
-            #     orthogonal_direction_vector = (source_direction_vector[1], -source_direction_vector[0])
-            # elif np.cross(source_direction_vector, sample_direction_vector)[2] < 0:
-            #     orthogonal_direction_vector = (-source_direction_vector[1], source_direction_vector[0])
-
 def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
