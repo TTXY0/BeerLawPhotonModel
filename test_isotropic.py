@@ -21,15 +21,10 @@ dy = Ly/ny
 xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 
+mu_background = 0.20
 mu = gauss_density_pattern(xc, yc, 50, Lx/10)
-# mu = np.ones((ny,nx), dtype=float)
 
-P0, a = mu_to_p0.mu_to_p0(mu, (-Lx/2, -Ly/2), dx/4, xc, yc)
-
-
-print(mu.shape, xc.shape, yc.shape)
-print(a[0,0])
-print(a[ny//2, nx//2])
+P0, a = mu_to_p0.mu_to_p0_isotropic(mu, mu_background, (-.5 + -Lx/2,-.5 + -Ly/2), dx/4, xc, yc)
 
 fig, ax = plt.subplots(1, 4, figsize=(12, 4))
 #ax[1].scatter(pixelsx[nx//2, ny//2], pixelsy[nx//2., ny//2])

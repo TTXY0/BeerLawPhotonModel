@@ -1,7 +1,7 @@
 import numpy as np
 # from numba import jit, cuda
 
-def mu_to_p0(mu, source, h, xp: np.array, yp: np.array): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
+def mu_to_p0_isotropic(mu, mu_background, source, h, xp: np.array, yp: np.array): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source
     assert mu.shape[1]==xp.shape[0]
     assert mu.shape[0]==yp.shape[0]
@@ -25,13 +25,17 @@ def mu_to_p0(mu, source, h, xp: np.array, yp: np.array): #mu is an array of atte
             for point_i in range(n):
  
                 i_x = int(np.floor( (xs + point_i * dx - xp[0] + 0.51*dpx ) / dpx ) ) #pixel indices
-                i_y = int(np.floor( (ys + point_i * dy - yp[0] + 0.51*dpy ) / dpy ) ) 
+                i_y = int(np.floor( (ys + point_i * dy - yp[0] + 0.51*dpy ) / dpy ) )
+                
                 if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
                     a[index_y, index_x] += mu[i_y,i_x] * h
+
+                else: #mu_background
+                    a[index_y, index_x] += mu_background * h
                  
     return mu * np.exp(-a), a 
 
-def mu_to_p0_cone(mu, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
+def mu_to_p0_cone(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
     assert mu.shape[1]==xp.shape[0]
     assert mu.shape[0]==yp.shape[0]
@@ -72,13 +76,15 @@ def mu_to_p0_cone(mu, source, h, xp: np.array, yp: np.array, theta, direction): 
                     if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
                         #a[index_x, index_x] = .0
                         a[index_y, index_x] += mu[i_y,i_x] * h
+                    
+                    else: #mu_background
+                        a[index_y, index_x] += mu_background * h
                         
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
             
     return p0, a, mask
 
-
-def mu_to_p0_3d(mu, source, h, xp, yp, zp):
+def mu_to_p0_isotropic_3d(mu, mu_background, source, h, xp, yp, zp):
     xs, ys, zs = source
     assert mu.shape[2] == xp.shape[0]
     assert mu.shape[1] == yp.shape[0]
@@ -111,10 +117,13 @@ def mu_to_p0_3d(mu, source, h, xp, yp, zp):
                     
                     if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1] and 0 <= i_z < mu.shape[0]:
                         a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                        
+                    else: #mu_background
+                        a[index_z, index_y, index_x] += mu_background * h
                     
     return mu * np.exp(-a), a
 
-def mu_to_p0_cone_3d(mu, source, h, xp: np.array, yp: np.array, zp: np.array, direction_vector, theta):
+def mu_to_p0_cone_3d(mu, mu_background, source, h, xp: np.array, yp: np.array, zp: np.array, direction_vector, theta):
     xs, ys, zs = source
     
     assert mu.shape[2] == xp.shape[0]
@@ -164,19 +173,19 @@ def mu_to_p0_cone_3d(mu, source, h, xp: np.array, yp: np.array, zp: np.array, di
                         
                         if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1] and 0 <= i_z < mu.shape[0]:
                             a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                        else: 
+                            a[index_z, index_y, index_x] += mu_background * h
                         
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
             
     return p0, a, mask
 
-def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
+def mu_to_p0_line(mu, mu_background, source_start, source_end, ray_direction, h, xp, yp):
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
     
     xs, ys = source_start
     xe, ye = source_end
-
-    # p_source_vector = np.array([xe - xs, ye - ys])  # physical source vector
     
     dpx = xp[1] - xp[0]  # spacing between sampling points
     dpy = yp[1] - yp[0]
@@ -258,20 +267,22 @@ def mu_to_p0_line(mu, source_start, source_end, ray_direction, h, xp, yp):
                 dx =  (xi - projection[0]) / (n - 1) #physical space dx
                 dy = (yi - projection[1]) / (n - 1)
                 
-                if n == 1:
+                if n == 1: #Prevents division by zero
                     continue
                 
                 for point_i in range(n):
                     i_x = int(np.floor( (projection[0] + point_i * dx - xp[0] + 0.51*dpx ) / dpx ) ) #pixel indices
                     i_y = int(np.floor( (projection[1] + point_i * dy - yp[0] + 0.51*dpy ) / dpy ) ) 
                     
-                    if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
+                    if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]: # Implement mu_background here
                         a[index_y, index_x] += mu[i_y,i_x] * h
+                    else : 
+                        a[index_y, index_x] += mu_background * h
                         
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
     return p0, a, mask
 
-def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
+def mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
     assert mu.shape[2] == xp.shape[0]
     assert mu.shape[1] == yp.shape[0]
     assert mu.shape[0] == zp.shape[0]
@@ -287,18 +298,23 @@ def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, h, xp,
     mask = np.zeros_like(mu)
     p0 = np.zeros_like(mu)
     
-    for index_z in range(mask.shape[0]):
+    zs_pixel = int((zs - zp[0] + .51 * dpz) / dpz)
+    ze_pixel = int((ze - zp[0] + .51 * dpz) / dpz)
+    print(zs_pixel, ze_pixel)
+    
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
         for index_y in range(mask.shape[1]):
             for index_x in range(mask.shape[2]):
                 xi = xp[index_x] #physical coordinates
                 yi = yp[index_y]
+                zi = zp[index_z]
                 
                 point_angle = np.arctan2 (yi - ys, xi - xs) - ray_direction
                 
                 if np.abs(point_angle) <= theta/2: 
-                    mask[index_y, index_x] = 1
+                    mask[index_z, index_y, index_x] = 1
     
-    for index_z in range(mask.shape[0]):
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
         for index_y in range(mask.shape[1]):
             for index_x in range(mask.shape[2]):
                 if mask[index_z, index_y , index_x] == 1:
@@ -308,7 +324,7 @@ def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, h, xp,
                     zi = zp[index_z]
                     
                     source_z = np.array([xs, ys, zi])
-                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2 + (zi - source_z[2])**2)**0.5
+                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2)**0.5
                     
                     n = int(d / h) + 1
                     
@@ -319,10 +335,76 @@ def mu_to_p0_wedge_3d(mu, source_start, source_end, ray_direction, theta, h, xp,
                     for point_i in range(n):
                         i_x = int(np.floor((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx))
                         i_y = int(np.floor((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy))
-                        i_z = int(np.floor((source_z[2] + 0.51 * dpz) / dpz))
+                        #i_z = int(np.floor((source_z[2] + point_i * dz - zp[0] + 0.51 * dpz) / dpz))
 
-                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1] and 0 <= i_z < mu.shape[0]:
-                            a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]: #and 0 <= i_z < mu.shape[0]:
+                            a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
+                        else : 
+                            a[index_z, index_y, index_x] += mu_background * h
+                        
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
+                
+    return p0, a, mask
+
+def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+    
+    xs, ys, zs = source_start
+    xe, ye, ze = source_end
+    
+    dpx = xp[1] - xp[0]   
+    dpy = yp[1] - yp[0] 
+    dpz = zp[1] - zp[0]   
+    
+    a = np.zeros_like(mu)
+    mask = np.zeros_like(mu)
+    p0 = np.zeros_like(mu)
+    
+    zs_pixel = int((zs - zp[0] + .51 * dpz) / dpz)
+    ze_pixel = int((ze - zp[0] + .51 * dpz) / dpz)
+    print(zs_pixel, ze_pixel)
+    
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                xi = xp[index_x] #physical coordinates
+                yi = yp[index_y]
+                zi = zp[index_z]
+                
+                point_angle = np.arctan2 (yi - ys, xi - xs) - ray_direction
+                
+                if np.abs(point_angle) <= theta/2: 
+                    mask[index_z, index_y, index_x] = 1
+    
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                if mask[index_z, index_y , index_x] == 1:
+                    
+                    xi = xp[index_x]
+                    yi = yp[index_y]
+                    zi = zp[index_z]
+                    
+                    source_z = np.array([xs, ys, zi])
+                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2)**0.5
+                    
+                    n = int(d / h) + 1
+                    
+                    dx = (xi - source_z[0]) / (n - 1)
+                    dy = (yi - source_z[1]) / (n - 1)
+                    dz = (zi - source_z[2]) / (n - 1)
+                    
+                    for point_i in range(n):
+                        i_x = int(np.floor((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx))
+                        i_y = int(np.floor((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy))
+                        #i_z = int(np.floor((source_z[2] + point_i * dz - zp[0] + 0.51 * dpz) / dpz))
+
+                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]: #and 0 <= i_z < mu.shape[0]:
+                            a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
+                        else : 
+                            a[index_z, index_y, index_x] += mu_background * h
                         
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
                 

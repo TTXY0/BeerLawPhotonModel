@@ -29,10 +29,11 @@ yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
 mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
+mu_background = 20
 
 source = (-Lx/2, -Ly/2, -Lz/2)
 
-P0, a, mask = mu_to_p0.mu_to_p0_cone_3d(mu, source, dx/2, xc, yc, zc, [1,1,1], np.pi/10)
+P0, a, mask = mu_to_p0.mu_to_p0_cone_3d(mu, mu_background, source, dx/2, xc, yc, zc, [1,1,1], np.pi/10)
 
 # #P0
 X, Y, Z = np.meshgrid(xc, yc, zc)
