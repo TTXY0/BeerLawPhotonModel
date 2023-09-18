@@ -257,7 +257,7 @@ def mu_to_p0_cone_3d_gpu(mu, source, h, xp, yp, zp, direction_vector, theta):
 ################################################################
 
 @cuda.jit
-def mu_to_p0_wedge_3d_kernel(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp, a, mask, p0, dpx, dpy, dpz):
+def mu_to_p0_wedge_3d_kernel(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp, a, p0, dpx, dpy, dpz):
     xs, ys, zs = source_start
     xe, ye, ze = source_end
     index_x, index_y, index_z = cuda.grid(3)
@@ -270,20 +270,16 @@ def mu_to_p0_wedge_3d_kernel(mu, mu_background, source_start, source_end, ray_di
         point_angle = math.atan2(yi - ys, xi - xs) - ray_direction
 
         if abs(point_angle) <= theta / 2:
-            mask[index_z, index_y, index_x] = 1
-
-        if mask[index_z, index_y, index_x] == 1:
-            source_z = np.array([xs, ys, zi])
-            d = math.sqrt((xi - source_z[0])**2 + (yi - source_z[1])**2 + (zi - source_z[2])**2)
+            
+            d = math.sqrt((xi - xs)**2 + (yi-ys)**2)
 
             n = int(d / h) + 1
-            dx = (xi - source_z[0]) / (n - 1)
-            dy = (yi - source_z[1]) / (n - 1)
-            dz = (zi - source_z[2]) / (n - 1)
+            dx = (xi - xs) / (n - 1)
+            dy = (yi - ys) / (n - 1)
 
             for point_i in range(n):
-                i_x = int((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx)
-                i_y = int((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy)
+                i_x = int((xs + point_i * dx - xp[0] + 0.51 * dpx) / dpx)
+                i_y = int((ys + point_i * dy - yp[0] + 0.51 * dpy) / dpy)
 
                 if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]:
                     a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
@@ -307,11 +303,14 @@ def mu_to_p0_wedge_3d_gpu(mu, mu_background, source_start, source_end, ray_direc
 
     dev_mu = cuda.to_device(mu)
     dev_a = cuda.to_device(a)
-    dev_mask = cuda.to_device(mask)
+    # dev_mask = cuda.to_device(mask)
     dev_p0 = cuda.to_device(p0)
     dev_xp = cuda.to_device(xp)
     dev_yp = cuda.to_device(yp)
     dev_zp = cuda.to_device(zp)
+    dev_source_start = cuda.to_device(source_start)
+    dev_source_end = cuda.to_device(source_end)
+    dev_ray_direction = cuda.to_device(ray_direction)
 
     threadsperblock = (16, 16, 1)
     blockspergrid_x = (mu.shape[2] + threadsperblock[0] - 1) // threadsperblock[0]
@@ -320,7 +319,7 @@ def mu_to_p0_wedge_3d_gpu(mu, mu_background, source_start, source_end, ray_direc
     blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
 
     mu_to_p0_wedge_3d_kernel[blockspergrid, threadsperblock](
-        dev_mu, mu_background, source_start, source_end, ray_direction, theta, h, dev_xp, dev_yp, dev_zp, dev_a, dev_mask, dev_p0, dpx, dpy, dpz
+        dev_mu, mu_background, dev_source_start, dev_source_end, dev_ray_direction, theta, h, dev_xp, dev_yp, dev_zp, dev_a, dev_p0, dpx, dpy, dpz
     )
 
-    return dev_p0.copy_to_host(), dev_a.copy_to_host(), dev_mask.copy_to_host()
+    return dev_p0.copy_to_host(), dev_a.copy_to_host()
