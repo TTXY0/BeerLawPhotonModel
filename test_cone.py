@@ -21,12 +21,10 @@ dy = Ly/ny
 xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 
-mu = gauss_density_pattern(xc, yc, 50, Lx/10)
-# mu = np.ones((ny,nx), dtype=float)
-P0, a, mask = mu_to_p0.mu_to_p0_cone(mu, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4)
+mu = gauss_density_pattern(xc, yc, 0.5, Lx/10)
+mu_background = 0.2
 
-# print(a[0,0])
-# print(a[ny//2, nx//2])
+P0, a, mask = mu_to_p0.mu_to_p0_cone(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4)
 
 fig, ax = plt.subplots(1, 5, figsize=(12, 4))
 
