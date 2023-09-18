@@ -29,6 +29,8 @@ def mu_to_p0_kernel(mu, source, h, xp, yp, result, a, dpx, dpy):
 
     if tx < mu.shape[1] and ty < mu.shape[0]:
         result[ty, tx] = mu[ty, tx] * math.exp(-a[ty, tx])
+    # else : 
+    #     result[ty, tx] = mu_background
 
 def mu_to_p0_gpu(mu, source, h, xp, yp):
     assert mu.shape[1] == xp.shape[0]
@@ -221,7 +223,6 @@ def mu_to_p0_cone_3d_kernel(mu, source, h, xp, yp, zp, direction_vector, theta, 
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * math.exp(-a[index_z, index_y, index_x])
 
 def mu_to_p0_cone_3d_gpu(mu, source, h, xp, yp, zp, direction_vector, theta):
-    xs, ys, zs = source
 
     assert mu.shape[2] == xp.shape[0]
     assert mu.shape[1] == yp.shape[0]
@@ -253,3 +254,73 @@ def mu_to_p0_cone_3d_gpu(mu, source, h, xp, yp, zp, direction_vector, theta):
 
     return dev_a.copy_to_host(), dev_p0.copy_to_host()
 
+################################################################
+
+@cuda.jit
+def mu_to_p0_wedge_3d_kernel(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp, a, mask, p0, dpx, dpy, dpz):
+    xs, ys, zs = source_start
+    xe, ye, ze = source_end
+    index_x, index_y, index_z = cuda.grid(3)
+
+    if (index_x < mu.shape[2]) and (index_y < mu.shape[1]) and (index_z < mu.shape[0]):
+        xi = xp[index_x]
+        yi = yp[index_y]
+        zi = zp[index_z]
+
+        point_angle = math.atan2(yi - ys, xi - xs) - ray_direction
+
+        if abs(point_angle) <= theta / 2:
+            mask[index_z, index_y, index_x] = 1
+
+        if mask[index_z, index_y, index_x] == 1:
+            source_z = np.array([xs, ys, zi])
+            d = math.sqrt((xi - source_z[0])**2 + (yi - source_z[1])**2 + (zi - source_z[2])**2)
+
+            n = int(d / h) + 1
+            dx = (xi - source_z[0]) / (n - 1)
+            dy = (yi - source_z[1]) / (n - 1)
+            dz = (zi - source_z[2]) / (n - 1)
+
+            for point_i in range(n):
+                i_x = int((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx)
+                i_y = int((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy)
+
+                if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]:
+                    a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
+                else:
+                    a[index_z, index_y, index_x] += mu_background * h
+
+            p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * math.exp(-a[index_z, index_y, index_x])
+
+def mu_to_p0_wedge_3d_gpu(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp):
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+
+    dpx = xp[1] - xp[0]
+    dpy = yp[1] - yp[0]
+    dpz = zp[1] - zp[0]
+
+    a = np.zeros_like(mu, dtype=np.float32)
+    mask = np.zeros_like(mu, dtype=np.float32)
+    p0 = np.zeros_like(mu, dtype=np.float32)
+
+    dev_mu = cuda.to_device(mu)
+    dev_a = cuda.to_device(a)
+    dev_mask = cuda.to_device(mask)
+    dev_p0 = cuda.to_device(p0)
+    dev_xp = cuda.to_device(xp)
+    dev_yp = cuda.to_device(yp)
+    dev_zp = cuda.to_device(zp)
+
+    threadsperblock = (16, 16, 1)
+    blockspergrid_x = (mu.shape[2] + threadsperblock[0] - 1) // threadsperblock[0]
+    blockspergrid_y = (mu.shape[1] + threadsperblock[1] - 1) // threadsperblock[1]
+    blockspergrid_z = (mu.shape[0] + threadsperblock[2] - 1) // threadsperblock[2]
+    blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
+
+    mu_to_p0_wedge_3d_kernel[blockspergrid, threadsperblock](
+        dev_mu, mu_background, source_start, source_end, ray_direction, theta, h, dev_xp, dev_yp, dev_zp, dev_a, dev_mask, dev_p0, dpx, dpy, dpz
+    )
+
+    return dev_p0.copy_to_host(), dev_a.copy_to_host(), dev_mask.copy_to_host()

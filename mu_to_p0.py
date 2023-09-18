@@ -324,7 +324,71 @@ def mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction
                     zi = zp[index_z]
                     
                     source_z = np.array([xs, ys, zi])
-                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2 **2)**0.5
+                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2)**0.5
+                    
+                    n = int(d / h) + 1
+                    
+                    dx = (xi - source_z[0]) / (n - 1)
+                    dy = (yi - source_z[1]) / (n - 1)
+                    dz = (zi - source_z[2]) / (n - 1)
+                    
+                    for point_i in range(n):
+                        i_x = int(np.floor((source_z[0] + point_i * dx - xp[0] + 0.51 * dpx) / dpx))
+                        i_y = int(np.floor((source_z[1] + point_i * dy - yp[0] + 0.51 * dpy) / dpy))
+                        #i_z = int(np.floor((source_z[2] + point_i * dz - zp[0] + 0.51 * dpz) / dpz))
+
+                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]: #and 0 <= i_z < mu.shape[0]:
+                            a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
+                        else : 
+                            a[index_z, index_y, index_x] += mu_background * h
+                        
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
+                
+    return p0, a, mask
+
+def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+    
+    xs, ys, zs = source_start
+    xe, ye, ze = source_end
+    
+    dpx = xp[1] - xp[0]   
+    dpy = yp[1] - yp[0] 
+    dpz = zp[1] - zp[0]   
+    
+    a = np.zeros_like(mu)
+    mask = np.zeros_like(mu)
+    p0 = np.zeros_like(mu)
+    
+    zs_pixel = int((zs - zp[0] + .51 * dpz) / dpz)
+    ze_pixel = int((ze - zp[0] + .51 * dpz) / dpz)
+    print(zs_pixel, ze_pixel)
+    
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                xi = xp[index_x] #physical coordinates
+                yi = yp[index_y]
+                zi = zp[index_z]
+                
+                point_angle = np.arctan2 (yi - ys, xi - xs) - ray_direction
+                
+                if np.abs(point_angle) <= theta/2: 
+                    mask[index_z, index_y, index_x] = 1
+    
+    for index_z in range(min(zs_pixel, ze_pixel), max(zs_pixel, ze_pixel)):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                if mask[index_z, index_y , index_x] == 1:
+                    
+                    xi = xp[index_x]
+                    yi = yp[index_y]
+                    zi = zp[index_z]
+                    
+                    source_z = np.array([xs, ys, zi])
+                    d = ((xi - source_z[0])**2 + (yi - source_z[1])**2)**0.5
                     
                     n = int(d / h) + 1
                     
