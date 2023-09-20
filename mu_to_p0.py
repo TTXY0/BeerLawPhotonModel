@@ -409,3 +409,82 @@ def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end,
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
                 
     return p0, a, mask
+
+
+def mu_to_p0_cone_variable_beam(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction, I): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
+    xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
+    assert mu.shape[1]==xp.shape[0]
+    assert mu.shape[0]==yp.shape[0]
+    
+    dpx  = xp[1] - xp[0] #spacing between sampling points
+    dpy = yp[1] - yp[0]
+    
+    theta_start = direction - (theta/2)
+    theta_end = direction + (theta/2)
+    d_theta = theta / (len(I) -1)
+    intensity_dict = {}
+    current_theta = theta_start
+    for intensity in I:
+        intensity_dict[current_theta] = intensity
+        current_theta += d_theta
+        
+    # print(intensity_dict)
+    # print(len(intensity_dict))
+    # print(d_theta)
+    # print(theta_start, theta_end)
+    
+    a = np.zeros_like(mu)
+    mask =  np.zeros_like(mu)
+    p0 = np.zeros_like(mu)
+    
+    ray_intensity = 0
+    for index_y in range(mask.shape[0]):
+        for index_x in range(mask.shape[1]):
+            xi = xp[index_x] #physical coordinates
+            yi = yp[index_y]
+            point_angle = np.arctan2 (yi - ys, xi - xs)# - direction
+            
+            
+            #Searching for the clockwise, counter-clockwise dictionary entries.
+            if min(theta_end, theta_start) <= point_angle <= max(theta_end, theta_start): 
+                #Ray_intensity calculation, search for the clockwise and counterclockwise adjaccent light rays
+                countercw_ray = None
+                clockwise_ray = None
+                sorted_thetas = sorted(intensity_dict.keys())
+                for theta in sorted_thetas:
+                    if point_angle > theta:
+                        clockwise_ray = theta
+                        continue
+                    else: 
+                        countercw_ray = theta
+                        break
+                #print(clockwise_ray, countercw_ray)
+                #print(clockwise_ray <= point_angle <= countercw_ray)
+                #Intensity calculation here
+                #The weight of the intensity of the point ray should be determined by the angular "closeness" of the point ray to defined rays in the dictionary. Therefore, the weight of the counterclockwise ray should be
+                #determined by the angular distance between the point ray and the clockwise ray, and vice versa. The closer the point ray is to the clockwise ray, the larger the distance between the point ray and the counterclockwise ray
+                ray_intensity = ((np.abs(point_angle - countercw_ray) / d_theta) * intensity_dict[clockwise_ray]) + ((np.abs(point_angle - clockwise_ray) / d_theta) * intensity_dict[countercw_ray])
+                
+                #print(intensity_dict[clockwise_ray], intensity_dict[countercw_ray])
+                #print(ray_intensity)
+
+                d = ((xi-xs)**2 + (yi-ys)**2) **0.5 #euclidean distance between source and target
+                n = int(d/h) + 1 # of discrete point
+
+                dx =  (xi - xs) / (n - 1) #physical space dx
+                dy = (yi - ys) / (n - 1)
+                
+                for point_i in range(n):
+                    i_x = int(np.floor( (xs + point_i * dx - xp[0] + 0.51*dpx ) / dpx ) ) #pixel indices
+                    i_y = int(np.floor( (ys + point_i * dy - yp[0] + 0.51*dpy ) / dpy ) ) 
+                    
+                    if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
+                        #a[index_x, index_x] = .0
+                        a[index_y, index_x] += mu[i_y,i_x] * (1 - ray_intensity) * h
+                    
+                    else: #mu_background
+                        a[index_y, index_x] += mu_background * (1 - ray_intensity) * h
+                        
+                p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
+            
+    return p0, a, mask
