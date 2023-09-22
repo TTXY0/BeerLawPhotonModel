@@ -8,6 +8,10 @@ def gauss_density_pattern(xp, yp, amplitude, sigma):
     y0 = yp.mean()
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
     return density
+def create_gaussian_array(size, center, sigma): # for creating I
+    x = np.arange(size)
+    gaussian = np.exp(-((x - center) ** 2) / (2 * sigma ** 2))
+    return gaussian
 
 Lx = 2
 Ly = 2
@@ -24,7 +28,9 @@ yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 mu = gauss_density_pattern(xc, yc, 50, Lx/10)
 mu_background = 20
 
-P0, a, mask = mu_to_p0.mu_to_p0_cone(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4)
+I = create_gaussian_array(11, 5, 5)
+#I = np.ones(11)
+P0, a, mask = mu_to_p0.mu_to_p0_cone_variable_beam(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4, I)
 
 fig, ax = plt.subplots(1, 5, figsize=(12, 4))
 
