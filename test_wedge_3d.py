@@ -13,9 +13,9 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
-Lz = 2
+Lx = 50
+Ly = 50
+Lz = 50
 
 nx = 32
 ny = 32
@@ -29,8 +29,8 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
-mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
-mu_background = 20
+mu = gauss_density_pattern(xc, yc, zc, .5, Lx/10)
+mu_background = .2
 
 source_start = np.array([-1, -1, -.25]) #vertical source
 source_end = np.array([-1, -1, .25])
@@ -39,7 +39,7 @@ source_end = np.array([-1, -1, .25])
 ray_direction = np.pi / 4 #np.pi/10
 theta = np.pi/10
 
-P0, a, mask = mu_to_p0.mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc)
+P0, a, fluence = mu_to_p0.mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc)
 X, Y, Z = np.meshgrid(xc, yc, zc)
 
 matlab_filename = "wedge.mat"

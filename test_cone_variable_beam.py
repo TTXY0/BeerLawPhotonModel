@@ -13,8 +13,8 @@ def create_gaussian_array(size, center, sigma): # for creating I
     gaussian = np.exp(-((x - center) ** 2) / (2 * sigma ** 2))
     return gaussian
 
-Lx = 2
-Ly = 2
+Lx = 10
+Ly = 10
 
 nx = 64
 ny = 64
@@ -25,12 +25,13 @@ dy = Ly/ny
 xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 
-mu = gauss_density_pattern(xc, yc, 50, Lx/10)
-mu_background = 20
+mu = gauss_density_pattern(xc, yc, .50, Lx/10)
+mu_background = .20
 
 I = create_gaussian_array(11, 5, 5)
-#I = np.ones(11)
-P0, a, mask = mu_to_p0.mu_to_p0_cone_variable_beam(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4, I)
+theta = np.pi/6
+direction = np.pi/4
+P0, a, fluence = mu_to_p0.mu_to_p0_cone_variable_beam(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, theta, direction, I)
 
 fig, ax = plt.subplots(1, 5, figsize=(12, 4))
 
@@ -40,10 +41,9 @@ ax[2].set_title("'a'")
 ax[3].set_title("fluence")
 ax[4].set_title("P0")
 
-ax[0].imshow(mask, cmap = "gray")
 ax[1].imshow(mu, cmap = "gray")
 ax[2].imshow(a, cmap = "gray")
-ax[3].imshow(np.exp(-a), cmap = "gray")
+ax[3].imshow(fluence, cmap = "gray")
 ax[4].imshow(P0, cmap = "gray")
 
 

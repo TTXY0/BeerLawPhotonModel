@@ -12,9 +12,9 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
-Lz = 2
+Lx = 50
+Ly = 50
+Lz = 50
 
 nx = 16
 ny = 16
@@ -28,12 +28,12 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
-mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
-mu_background = 20
+mu = gauss_density_pattern(xc, yc, zc, .5, Lx/10)
+mu_background = .2
 
-source = (-Lx/2, -Ly/2, -Lz/2)
+source = (-Lx, -Ly/2, -Lz/2) #x , y, z
 
-P0, a = mu_to_p0.mu_to_p0_isotropic_3d(mu, mu_background, source, dx/2, xc, yc, zc)
+P0, a, fluence = mu_to_p0.mu_to_p0_isotropic_3d(mu, mu_background, source, dx/2, xc, yc, zc)
 
 #P0
 X, Y, Z = np.meshgrid(xc, yc, zc)
