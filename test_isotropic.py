@@ -9,8 +9,8 @@ def gauss_density_pattern(xp, yp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
+Lx = 50
+Ly = 50
 
 nx = 64
 ny = 64
@@ -21,10 +21,10 @@ dy = Ly/ny
 xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 
-mu_background = 0.20
-mu = gauss_density_pattern(xc, yc, 50, Lx/10)
+mu_background = 0.2
+mu = gauss_density_pattern(xc, yc, 0.5, Lx/10)
 
-P0, a = mu_to_p0.mu_to_p0_isotropic(mu, mu_background, (-.5 + -Lx/2,-.5 + -Ly/2), dx/4, xc, yc)
+P0, a, fluence = mu_to_p0.mu_to_p0_isotropic(mu, mu_background, (-Lx/2,-Ly/2), dx/4, xc, yc)
 
 fig, ax = plt.subplots(1, 4, figsize=(12, 4))
 #ax[1].scatter(pixelsx[nx//2, ny//2], pixelsy[nx//2., ny//2])
@@ -35,7 +35,7 @@ ax[3].set_title("P0")
 
 ax[0].imshow(mu, cmap = "gray")
 ax[1].imshow(a, cmap = "gray")
-ax[2].imshow(np.exp(-a), cmap = "gray")
+ax[2].imshow(fluence, cmap = "gray")
 #ax[3].imshow(mask, cmap = 'gray')
 ax[3].imshow(P0, cmap = "gray")
 

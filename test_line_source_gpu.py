@@ -9,8 +9,8 @@ def gauss_density_pattern(xp, yp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
+Lx = 50
+Ly = 50
 
 nx = 64
 ny = 64

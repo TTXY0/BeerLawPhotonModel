@@ -121,7 +121,7 @@ def mu_to_p0_3d_gpu(mu, source, h, xp, yp, zp):
 
 
 @cuda.jit
-def mu_to_p0_cone_kernel(mu, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy):
+def mu_to_p0_cone_kernel(mu, mu_background, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy):
     tx, ty = cuda.grid(2)
     xs, ys = source
     
@@ -145,11 +145,14 @@ def mu_to_p0_cone_kernel(mu, source, h, xp, yp, theta, direction, result_p0, res
 
                 if 0 <= i_x < mu.shape[1] and 0 <= i_y < mu.shape[0]:
                     cuda.atomic.add(result_a, (ty, tx), mu[i_y, i_x] * h)
+                else:
+                    cuda.atomic.add(result_a, (ty, tx), mu_background * h)
 
     cuda.syncthreads()
 
     if tx < mu.shape[1] and ty < mu.shape[0]:
         result_p0[ty, tx] = mask[ty, tx] * mu[ty, tx] * math.exp(-result_a[ty, tx])
+    
 
 def mu_to_p0_cone_gpu(mu, source, h, xp, yp, theta, direction):
     assert mu.shape[1] == xp.shape[0]

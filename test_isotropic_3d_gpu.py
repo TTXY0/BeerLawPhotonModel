@@ -12,13 +12,13 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
-Lz = 2
+Lx = 10
+Ly = 10
+Lz = 10
 
-nx = 100
-ny = 100
-nz = 100
+nx = 32
+ny = 32
+nz = 32
 
 dx = Lx / nx
 dy = Ly / ny
@@ -28,11 +28,12 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
-mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
+mu = gauss_density_pattern(xc, yc, zc, .50, Lx/10)
+mu_background = 0.2
 
 source = (-Lx/2, -Ly/2, -Lz/2)
 
-P0, a = mu_to_p0_gpu.mu_to_p0_3d_gpu(mu, source, dx/2, xc, yc, zc)
+P0, a, fluence = mu_to_p0_gpu.mu_to_p0_3d_gpu(mu, source, dx/2, xc, yc, zc)
 
 #P0
 X, Y, Z = np.meshgrid(xc, yc, zc)
@@ -58,7 +59,6 @@ fig1 = go.Figure(data=[P0_Scatter], layout=layout)
 fig1.show()
 
 #Fluence
-fluence = np.exp(-a)
 marker_size = 60 * fluence / np.max(fluence)
 P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
                                    mode='markers', 

@@ -17,9 +17,9 @@ def create_gaussian_array(size, center, sigma): # for creating I
     gaussian = np.exp(-((x - center) ** 2) / (2 * sigma ** 2))
     return gaussian
 
-Lx = 2
-Ly = 2
-Lz = 2
+Lx = 10
+Ly = 10
+Lz = 10
 
 nx = 32
 ny = 32
@@ -33,8 +33,8 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
-mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
-mu_background = 20
+mu = gauss_density_pattern(xc, yc, zc, .5, Lx/10)
+mu_background = .2
 
 source_start = np.array([-1, -1, -.25]) #vertical source
 source_end = np.array([-1, -1, .25])
@@ -46,7 +46,7 @@ theta = np.pi/4
 I_row = create_gaussian_array(11, 5, 5)
 I = np.array([I_row for _ in range(nz)])
 
-P0, a, mask = mu_to_p0.mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc, I)
+P0, a, fluence = mu_to_p0.mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc, I)
 X, Y, Z = np.meshgrid(xc, yc, zc)
 
 matlab_filename = "wedge.mat"
@@ -100,31 +100,3 @@ P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
 layout = go.Layout(scene=dict(aspectmode='data'), title= "Fluence")
 fig2 = go.Figure(data=[P0_Scatter], layout=layout)
 fig2.show()
-
-
-# s
-marker_size = 30 * mask / np.max(mask)
-P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-                                   mode='markers', 
-                                   marker=dict(size=marker_size.flatten(),
-                                               color=mask.flatten(),
-                                               colorscale='gray',
-                                               opacity=1,
-                                               colorbar=dict(title='Value'))
-                                   )
-layout = go.Layout(scene=dict(aspectmode='data'), title= "Mask")
-fig3 = go.Figure(data=[P0_Scatter], layout=layout)
-fig3.show()
-
-
-
-
-P0_2d = np.sum(mask, axis=0)
-plt.figure(figsize=(8, 6))
-plt.imshow(P0_2d, cmap='gray', extent=(xc[0], xc[-1], yc[0], yc[-1]), origin='lower')
-plt.colorbar(label='Attenuation')
-
-plt.title("2D Projection of P0")
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.show()

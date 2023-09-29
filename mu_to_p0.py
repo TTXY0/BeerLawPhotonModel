@@ -9,7 +9,7 @@ def mu_to_p0_isotropic(mu, mu_background, source, h, xp: np.array, yp: np.array)
     dpx  = xp[1]-xp[0] #spacing between sampling points
     dpy = yp[1]-yp[0]
     a = np.zeros_like(mu)
-
+    p0 = np.zeros_like(mu)
     for index_y in range(mu.shape[0]):
         for index_x in range(mu.shape[1]):
             xi = xp[index_x] #physical coordinates
@@ -32,8 +32,9 @@ def mu_to_p0_isotropic(mu, mu_background, source, h, xp: np.array, yp: np.array)
 
                 else: #mu_background
                     a[index_y, index_x] += mu_background * h
-                 
-    return mu * np.exp(-a), a 
+            print(d)
+            p0[index_y, index_x] = mu[index_y, index_x] * (np.pi * d**2)**-1 * np.exp(-a[index_y, index_x])
+    return p0, a, np.exp(-a) 
 
 def mu_to_p0_cone(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
@@ -82,7 +83,7 @@ def mu_to_p0_cone(mu, mu_background, source, h, xp: np.array, yp: np.array, thet
                         
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
             
-    return p0, a, mask
+    return p0, a, np.exp(-a)
 
 def mu_to_p0_isotropic_3d(mu, mu_background, source, h, xp, yp, zp):
     xs, ys, zs = source
@@ -121,7 +122,7 @@ def mu_to_p0_isotropic_3d(mu, mu_background, source, h, xp, yp, zp):
                     else: #mu_background
                         a[index_z, index_y, index_x] += mu_background * h
                     
-    return mu * np.exp(-a), a
+    return mu * np.exp(-a), a, np.exp(-a) 
 
 def mu_to_p0_cone_3d(mu, mu_background, source, h, xp: np.array, yp: np.array, zp: np.array, direction_vector, theta):
     xs, ys, zs = source
@@ -178,7 +179,7 @@ def mu_to_p0_cone_3d(mu, mu_background, source, h, xp: np.array, yp: np.array, z
                         
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
             
-    return p0, a, mask
+    return p0, a, np.exp(-a) 
 
 def mu_to_p0_line(mu, mu_background, source_start, source_end, ray_direction, h, xp, yp):
     assert mu.shape[1] == xp.shape[0]
@@ -280,7 +281,7 @@ def mu_to_p0_line(mu, mu_background, source_start, source_end, ray_direction, h,
                         a[index_y, index_x] += mu_background * h
                         
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
-    return p0, a, mask
+    return p0, a, np.exp(-a) 
 
 def mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
     assert mu.shape[2] == xp.shape[0]
@@ -344,7 +345,7 @@ def mu_to_p0_wedge_3d(mu, mu_background, source_start, source_end, ray_direction
                         
                     p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
                 
-    return p0, a, mask
+    return p0, a, np.exp(-a) 
 
 def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp, I): #theta is the angle defined by the distance from the central axis of the beam, defined by ray_direction
     assert mu.shape[2] == xp.shape[0]
@@ -416,13 +417,13 @@ def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end,
                         #i_z = int(np.floor((source_z[2] + point_i * dz - zp[0] + 0.51 * dpz) / dpz))
 
                         if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1]: #and 0 <= i_z < mu.shape[0]:
-                            a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * (1-ray_intensity) * h
+                            a[index_z, index_y, index_x] += mu[index_z, i_y, i_x] * h
                         else : 
-                            a[index_z, index_y, index_x] += mu_background * (1-ray_intensity) * h
+                            a[index_z, index_y, index_x] += mu_background * h
                         
-                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x])
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x]) * ray_intensity
                 
-    return p0, a, mask
+    return p0, a, np.exp(-a) 
 
 
 def mu_to_p0_cone_variable_beam(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction, I): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
@@ -494,11 +495,11 @@ def mu_to_p0_cone_variable_beam(mu, mu_background, source, h, xp: np.array, yp: 
                     
                     if 0 <= i_x < mu.shape[0] and 0 <= i_y < mu.shape[1]:
                         #a[index_x, index_x] = .0
-                        a[index_y, index_x] += mu[i_y,i_x] * (1 - ray_intensity) * h
+                        a[index_y, index_x] += mu[i_y,i_x] * h
                     
                     else: #mu_background
-                        a[index_y, index_x] += mu_background * (1 - ray_intensity) * h
+                        a[index_y, index_x] += mu_background * h
                         
-                p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x])
-            
-    return p0, a, mask
+                p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x]) * ray_intensity * ((np.pi * d**2)**-1)
+    return p0, a, np.exp(-a) 
+

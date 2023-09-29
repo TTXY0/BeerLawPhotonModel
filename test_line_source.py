@@ -9,8 +9,8 @@ def gauss_density_pattern(xp, yp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
+Lx = 50
+Ly = 50
 
 nx = 64
 ny = 64
@@ -22,12 +22,12 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 #print(xc)
 
-mu = gauss_density_pattern(xc, yc, 50, Lx/10) #Fix bug here
-mu_background = 0.2
+mu = gauss_density_pattern(xc, yc, 5, Lx/10) #Fix bug here
+mu_background = 2
 
 #For a ray_direction to the "right" of the light source
 
-source_start = (-1.7, -.5) #x,y
+source_start = (-1.3, -.5) #x,y
 source_end = (-1.3, .5)
 # source_end = (-.95, -.5) #
 
@@ -42,21 +42,21 @@ ray_direction = right_ray_direction
 
 
 print(right_ray_direction)
-P0, a, mask = mu_to_p0.mu_to_p0_line(mu, mu_background, (source_start), (source_end), ray_direction, dx/4, xc, yc)
+P0, a, fluence = mu_to_p0.mu_to_p0_line(mu, mu_background, (source_start), (source_end), ray_direction, dx/4, xc, yc)
 
 
 # print(mu.shape, xc.shape, yc.shape)
 # print(a[0,0])
 # print(a[ny//2, nx//2])
 
-plt.imshow(P0, origin='lower')
+plt.imshow(P0, origin='lower', cmap = 'gray')
 plt.show()
 
 
-plt.imshow(a, origin='lower')
+plt.imshow(a, origin='lower', cmap = 'gray')
 plt.show()
-# plt.imshow(mask * np.exp(-a), origin='lower')
-# plt.show()
+plt.imshow(fluence, origin='lower', cmap = 'gray')
+plt.show()
 
 #fig, ax = plt.subplots(1, 4, figsize=(12, 4))
 #ax[1].scatter(pixelsx[nx//2, ny//2], pixelsy[nx//2., ny//2])
