@@ -25,7 +25,7 @@ mu = gauss_density_pattern(xc, yc, 50, Lx/10)
 mu_background = 0.2
 # mu = np.ones((ny,nx), dtype=float)
 
-P0, a = mu_to_p0_gpu.mu_to_p0_gpu(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc)
+P0, a, fluence = mu_to_p0_gpu.mu_to_p0_gpu(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc)
 
 
 # print(mu.shape, xc.shape, yc.shape)

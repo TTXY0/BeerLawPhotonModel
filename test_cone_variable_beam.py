@@ -48,4 +48,4 @@ ax[4].imshow(P0, cmap = "gray")
 
 
 
-plt.show()
+plt.savefig("test1")

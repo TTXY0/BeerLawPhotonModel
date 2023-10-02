@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mu_to_p0_gpu
 import plotly.graph_objs as go
+import scipy.io as sio
 
 
 def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
@@ -11,6 +12,10 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     z0 = zp.mean()
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
+def create_gaussian_array(size, center, sigma): # for creating I
+    x = np.arange(size)
+    gaussian = np.exp(-((x - center) ** 2) / (2 * sigma ** 2))
+    return gaussian
 
 Lx = 10
 Ly = 10
@@ -31,9 +36,18 @@ zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 mu = gauss_density_pattern(xc, yc, zc, .5, Lx/10)
 mu_background = .2
 
-source = (-10, 0, 0)
+source_start = np.array([-10, 0, -3]) #vertical source
+source_end = np.array([-10, 0, 3])
 
-P0, a, fluence = mu_to_p0_gpu.mu_to_p0_3d_gpu(mu, mu_background, source, dx/2, xc, yc, zc)
+#ray direction is defined as the rotational angle around the z-axis in radians
+ray_direction = 0
+theta = np.pi/10
+
+I_row = create_gaussian_array(11, 5, 5)
+# I_row = np.ones(11)
+I = np.array([I_row for _ in range(nz)])
+
+P0, a, fluence = mu_to_p0_gpu.mu_to_p0_wedge_variable_beam_3d_gpu(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc, I)
 fig, ax = plt.subplots(3, 3, figsize=(12,7), sharex= True, sharey= True)
 ax[0,0].set_title("Along Z axis", fontsize = 20)
 ax[0,1].set_title("Along Y axis", fontsize = 20)
@@ -57,47 +71,57 @@ ax[2,0].set_ylabel("Fluence", fontsize = 20)
 
 
 fig.tight_layout()
-plt.savefig("isotropic_MIPs")
-# #P0
+plt.savefig("variable_beamMIPS")
 # X, Y, Z = np.meshgrid(xc, yc, zc)
-# marker_size = 60 * P0 / np.max(P0)
+
+matlab_filename = "p0.mat"
+
+# Create a dictionary to store the data with a variable name (e.g., 'volume_data')
+data_dict = {'volume_data': P0}
+
+# Save the dictionary as a .mat file
+sio.savemat(matlab_filename, data_dict)
+
+#P0
+X, Y, Z = np.meshgrid(xc, yc, zc)
+# marker_size = 30 * P0 / np.max(P0)
 # P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
 #                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(), color=P0.flatten(), colorscale='gray',
-#                                    opacity=1,colorbar=dict(title='Value'))
-#                                    )
+#                                    marker=dict(size=marker_size.flatten(),
+#                                                color=P0.flatten(),
+#                                                colorscale='gray',
+#                                                opacity=1,
+#                                                colorbar=dict(title='Value')
+#                                    ))
 # layout = go.Layout(scene=dict(aspectmode='data'), title = "P0")
 # fig0 = go.Figure(data=[P0_Scatter], layout=layout)
 # fig0.show()
 
-# #Alpha
-# marker_size = 60 * a / np.max(a)
+# # Alpha
+# marker_size = 30 * a / np.max(a)
 # P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
 #                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(), color=a.flatten(), colorscale='gray',
-#                                    opacity=1,colorbar=dict(title='Value'))
-#                                    )
+#                                    marker=dict(size=marker_size.flatten(),
+#                                                color=a.flatten(),
+#                                                colorscale='gray',
+#                                                opacity=1,
+#                                                colorbar=dict(title='Value')
+#                                    ))
 # layout = go.Layout(scene=dict(aspectmode='data'), title= "Alpha")
 # fig1 = go.Figure(data=[P0_Scatter], layout=layout)
 # fig1.show()
 
-# #Fluence
-# marker_size = 60 * fluence / np.max(fluence)
+# Fluence
+# print(np.max(mask, axis = 1))
+# marker_size = 30 * mask / np.max(mask)
 # P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
 #                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(), color=fluence.flatten(), colorscale='gray',
-#                                    opacity=1,colorbar=dict(title='Value')
+#                                    marker=dict(size=marker_size.flatten(),
+#                                                color=mask.flatten(),
+#                                                colorscale='viridis',
+#                                                opacity=1,
+#                                                colorbar=dict(title='Value')
 #                                    ))
-# layout = go.Layout(scene=dict(aspectmode='data'), title= "Fluence")
+# layout = go.Layout(scene=dict(aspectmode='data'), title= "mask")
 # fig2 = go.Figure(data=[P0_Scatter], layout=layout)
 # fig2.show()
-
-# attenuation_2d = np.sum(P0, axis=0)
-# plt.figure(figsize=(8, 6))
-# plt.imshow(attenuation_2d, cmap='plasma', extent=(xc[0], xc[-1], yc[0], yc[-1]), origin='lower')
-# plt.colorbar(label='Attenuation')
-
-# plt.title("2D Projection of P0")
-# plt.xlabel("X")
-# plt.ylabel("Y")
-# plt.show()

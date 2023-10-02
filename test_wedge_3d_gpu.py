@@ -13,13 +13,13 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
 
-Lx = 2
-Ly = 2
-Lz = 2
+Lx = 10
+Ly = 10
+Lz = 10
 
-nx = 200
-ny = 200
-nz = 200
+nx = 100
+ny = 100
+nz = 100
 
 dx = Lx / nx
 dy = Ly / ny
@@ -29,26 +29,50 @@ xc = np.linspace(-Lx/2 + dx/2, Lx/2 - dx/2, nx)
 yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 zc = np.linspace(-Lz/2 + dz/2, Lz/2 - dz/2, nz)
 
-mu = gauss_density_pattern(xc, yc, zc, 50, Lx/10)
-mu_background = 20
+mu = gauss_density_pattern(xc, yc, zc, 0.5, Lx/10)
+mu_background = .2
 
-source_start = np.array([-1, -1, -.25]) #vertical source
-source_end = np.array([-1, -1, .25])
+source_start = np.array([-10, 0, -3]) #vertical source
+source_end = np.array([-10, 0, 3])
 
 #ray direction is defined as the rotational angle around the z-axis in radians
-ray_direction = np.pi / 4 #np.pi/10
+ray_direction = 0 #np.pi/10
 theta = np.pi/10
 
-P0, a = mu_to_p0_gpu.mu_to_p0_wedge_3d_gpu(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc)
-X, Y, Z = np.meshgrid(xc, yc, zc)
+P0, a, fluence = mu_to_p0_gpu.mu_to_p0_wedge_3d_gpu(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc)
+fig, ax = plt.subplots(3, 3, figsize=(12,7), sharex= True, sharey= True)
+ax[0,0].set_title("Along Z axis", fontsize = 20)
+ax[0,1].set_title("Along Y axis", fontsize = 20)
+ax[0,2].set_title("Along X axis", fontsize = 20)
 
-matlab_filename = "wedge.mat"
+ax[0,0].imshow(np.max(P0, axis = 0), cmap = 'gray')
+ax[0,1].imshow(np.max(P0, axis = 1), cmap = 'gray')
+ax[0,2].imshow(np.max(P0, axis = 2), cmap = 'gray')
 
-# Create a dictionary to store the data with a variable name (e.g., 'volume_data')
-data_dict = {'volume_data': P0}
+ax[1,0].imshow(np.max(a, axis = 0), cmap = 'gray')
+ax[1,1].imshow(np.max(a, axis = 1), cmap = 'gray')
+ax[1,2].imshow(np.max(a, axis = 2), cmap = 'gray')
 
-# Save the dictionary as a .mat file
-sio.savemat(matlab_filename, data_dict)
+ax[2,0].imshow(np.max(fluence, axis = 0), cmap = 'gray')
+ax[2,1].imshow(np.max(fluence, axis = 1), cmap = 'gray')
+ax[2,2].imshow(np.max(fluence, axis = 2), cmap = 'gray')
+
+ax[0,0].set_ylabel("P0", fontsize = 20)
+ax[1,0].set_ylabel("Alpha", fontsize = 20)
+ax[2,0].set_ylabel("Fluence", fontsize = 20)
+
+
+fig.tight_layout()
+plt.savefig("wedge_MIPs")
+# X, Y, Z = np.meshgrid(xc, yc, zc)
+
+# matlab_filename = "wedge.mat"
+
+# # Create a dictionary to store the data with a variable name (e.g., 'volume_data')
+# data_dict = {'volume_data': P0}
+
+# # Save the dictionary as a .mat file
+# sio.savemat(matlab_filename, data_dict)
 
 # #P0
 # X, Y, Z = np.meshgrid(xc, yc, zc)
