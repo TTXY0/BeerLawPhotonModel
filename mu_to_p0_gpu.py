@@ -408,8 +408,8 @@ def mu_to_p0_wedge_variable_beam_3d_kernel(
                     else:
                         cuda.atomic.add(a, (tz, ty, tx), mu_background * h)
                 
-                p0[tz, ty, tx] = mu[tz, ty, tx] * math.exp(-a[tz, ty, tx]) * ((math.pi * (d ** 3)) ** -1)
-                fluence[tz, ty, tx] = math.exp(-a[tz, ty, tx]) * ((math.pi * (d ** 3)) ** -1)
+                p0[tz, ty, tx] = mu[tz, ty, tx] * math.exp(-a[tz, ty, tx]) * ((math.pi * (d ** 3)) ** -1) * ray_intensity
+                fluence[tz, ty, tx] = math.exp(-a[tz, ty, tx]) * ((math.pi * (d ** 3)) ** -1) * ray_intensity
 
 def mu_to_p0_wedge_variable_beam_3d_gpu(
     mu, mu_background, source_start, source_end, ray_direction, theta, h, xp, yp, zp, I
