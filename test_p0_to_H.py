@@ -32,7 +32,7 @@ mu = gauss_density_pattern(xc, yc, .50, Lx/10)
 mu_background = .20
 
 #I_control = np.ones(11)
-I = create_gaussian_array(11, 5, 5)
+I = create_gaussian_array(11, 9, 5)
 direction = 0
 theta = np.pi / 10
 source = (-10, 0)
@@ -56,6 +56,6 @@ ax[1].imshow(P0_original, cmap = "gray")
 # ax[2].imshow(fluence, cmap = "gray")
 # ax[3].imshow(P0, cmap = "gray")
 
-print(np.allclose(P0_original, P0_new, atol= 0.001))
+print(np.allclose(P0_original, P0_new, atol= 0.00001))
 
 plt.show()

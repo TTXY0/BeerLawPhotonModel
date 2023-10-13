@@ -14,7 +14,7 @@ def p0_to_H(mu, p0, I, source, xc, yc, theta, direction):
     d_theta = theta / (len(I) -1)
     
     
-    H = np.column_stack([column for _ in range(len(I))])
+    H = np.zeros( (column.shape[0], I.shape[0]))
     
     for m in range( H.shape[0] ) : 
         
