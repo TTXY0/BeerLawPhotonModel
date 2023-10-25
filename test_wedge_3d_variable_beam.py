@@ -21,9 +21,9 @@ Lx = 10
 Ly = 10
 Lz = 10
 
-nx = 100
-ny = 100
-nz = 100
+nx = 30
+ny = 30
+nz = 30
 
 dx = Lx / nx
 dy = Ly / ny
@@ -77,16 +77,16 @@ fig.tight_layout()
 plt.savefig("variable_beamMIPS")
 # X, Y, Z = np.meshgrid(xc, yc, zc)
 
-matlab_filename = "p0.mat"
+#matlab_filename = "p0.mat"
 
 # Create a dictionary to store the data with a variable name (e.g., 'volume_data')
-data_dict = {'volume_data': P0}
+#data_dict = {'volume_data': P0}
 
 # Save the dictionary as a .mat file
-sio.savemat(matlab_filename, data_dict)
+#sio.savemat(matlab_filename, data_dict)
 
 #P0
-X, Y, Z = np.meshgrid(xc, yc, zc)
+#X, Y, Z = np.meshgrid(xc, yc, zc)
 # marker_size = 30 * P0 / np.max(P0)
 # P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
 #                                    mode='markers', 

@@ -28,7 +28,7 @@ direction = 0
 theta = np.pi / 10
 source = (-10, 0)
 
-P0, a, fluence = mu_to_p0.mu_to_p0_cone(mu, mu_background, source, dx/4, xc, yc, theta, direction)
+P0, a, fluence = mu_to_p0.mu_to_p0_wedge(mu, mu_background, source, dx/4, xc, yc, theta, direction)
 
 fig, ax = plt.subplots(1, 4, figsize=(12, 4))
 

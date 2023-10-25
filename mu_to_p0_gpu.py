@@ -138,7 +138,7 @@ def mu_to_p0_3d_gpu(mu, mu_background, source, h, xp, yp, zp):
 
 
 @cuda.jit
-def mu_to_p0_cone_kernel(mu, mu_background, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy, fluence):
+def mu_to_p0_wedge_kernel(mu, mu_background, source, h, xp, yp, theta, direction, result_p0, result_a, mask, dpx, dpy, fluence):
     tx, ty = cuda.grid(2)
     xs, ys = source
     
@@ -172,7 +172,7 @@ def mu_to_p0_cone_kernel(mu, mu_background, source, h, xp, yp, theta, direction,
         fluence[ty, tx] = mask[ty, tx] *  math.exp(-result_a[ty, tx]) * ((np.pi * d**2)**-1)
     
 
-def mu_to_p0_cone_gpu(mu, mu_background, source, h, xp, yp, theta, direction):
+def mu_to_p0_wedge_gpu(mu, mu_background, source, h, xp, yp, theta, direction):
     assert mu.shape[1] == xp.shape[0]
     assert mu.shape[0] == yp.shape[0]
     
@@ -193,7 +193,7 @@ def mu_to_p0_cone_gpu(mu, mu_background, source, h, xp, yp, theta, direction):
     blocks_per_grid_y = (mu.shape[0] + threads_per_block[1] - 1) // threads_per_block[1]
     blocks_per_grid = (blocks_per_grid_x, blocks_per_grid_y)
 
-    mu_to_p0_cone_kernel[blocks_per_grid, threads_per_block](
+    mu_to_p0_wedge_kernel[blocks_per_grid, threads_per_block](
         dev_mu, mu_background, dev_source, h, dev_xp, dev_yp, theta, direction, dev_result_p0, dev_result_a, dev_mask, dpx, dpy, dev_fluence
     )
 

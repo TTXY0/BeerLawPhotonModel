@@ -32,7 +32,7 @@ I = create_gaussian_array(11, 8, 5) # a beam of light whose center of greatest i
 theta = np.pi/6
 direction = 0
 source = (-10,0)
-P0, a, fluence = mu_to_p0.mu_to_p0_cone_variable_beam(mu, mu_background, source, dx/4, xc, yc, theta, direction, I)
+P0, a, fluence = mu_to_p0.mu_to_p0_wedge_variable_beam(mu, mu_background, source, dx/4, xc, yc, theta, direction, I)
 
 fig, ax = plt.subplots(1, 4, figsize=(12, 4))
 

@@ -39,7 +39,7 @@ def mu_to_p0_isotropic(mu, mu_background, source, h, xp: np.array, yp: np.array)
             fluence[index_y, index_x] = np.exp(-a[index_y, index_x]) * ((np.pi * (d**2)) ** -1)
     return p0, a, fluence
 
-def mu_to_p0_cone(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
+def mu_to_p0_wedge(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
     assert mu.shape[1]==xp.shape[0]
     assert mu.shape[0]==yp.shape[0]
@@ -429,13 +429,13 @@ def mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end,
                         else : 
                             a[index_z, index_y, index_x] += mu_background * h
                         
-                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (d**3)) ** -1)
-                    fluence[index_z, index_y, index_x] = np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (d**3)) ** -1)
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (d**3)) ** -1) * ray_intensity
+                    fluence[index_z, index_y, index_x] = np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (d**3)) ** -1) * ray_intensity
 
     return p0, a, fluence
 
 
-def mu_to_p0_cone_variable_beam(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction, I): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
+def mu_to_p0_wedge_variable_beam(mu, mu_background, source, h, xp: np.array, yp: np.array, theta, direction, I): #mu is an array of attenuation coefficients, source is a tuple containing the x and y coordinates, h is the spacing between sampling points along the ray
     xs, ys = source                                                                 #theta is the width of the "flashlight", direction is the "pointed" direction of the flashlight
     assert mu.shape[1]==xp.shape[0]
     assert mu.shape[0]==yp.shape[0]
@@ -495,4 +495,71 @@ def mu_to_p0_cone_variable_beam(mu, mu_background, source, h, xp: np.array, yp: 
                 p0[index_y, index_x] = mu[index_y, index_x] * np.exp(-a[index_y, index_x]) * ((np.pi * (d**2)) ** -1) * ray_intensity
                 fluence[index_y, index_x] = np.exp(-a[index_y, index_x]) * ((np.pi * (d**2)) ** -1) * ray_intensity
                 
+    return p0, a, fluence
+
+def mu_to_p0_cone_variable_beam_3d(mu, mu_background, source, h, xp: np.array, yp: np.array, zp: np.array, direction_vector, theta, I):
+    xs, ys, zs = source
+    
+    assert mu.shape[2] == xp.shape[0]
+    assert mu.shape[1] == yp.shape[0]
+    assert mu.shape[0] == zp.shape[0]
+    
+    dpx = xp[1] - xp[0]   
+    dpy = yp[1] - yp[0] 
+    dpz = zp[1] - zp[0]   
+    
+    d_theta = theta / (len(I) -1)
+    
+    a = np.zeros_like(mu)
+    p0 = np.zeros_like(mu)
+    fluence = np.zeros_like(mu)
+    mask = np.zeros_like(mu)
+    for index_z in range(mask.shape[0]):
+        for index_y in range(mask.shape[1]):
+            for index_x in range(mask.shape[2]):
+                xi = xp[index_x]
+                yi = yp[index_y]
+                zi = zp[index_z]
+                
+                vector_shift = np.array([xi - xs, yi - ys, zi - zs])
+                point_angle = np.arccos(   np.dot(direction_vector, vector_shift)  /  (np.linalg.norm(direction_vector) * np.linalg.norm(vector_shift)   )   )
+                
+                if point_angle <= theta / 2:
+                    mask[index_z, index_y, index_x] = 1
+                    
+                    outside_ray_i = int(np.ceil((point_angle) / d_theta))
+                    inside_ray_i = int(np.floor((point_angle) / d_theta))
+                    
+                    outside_ray_theta = outside_ray_i * d_theta
+                    inside_ray_theta = inside_ray_i * d_theta
+                    
+                    outside_ray_Intensity = I[outside_ray_i]
+                    inside_ray_Intensity = I[inside_ray_i]
+                    
+                    ray_intensity = (
+                        (abs(point_angle - inside_ray_theta) / d_theta) * outside_ray_Intensity
+                        + (abs(point_angle - outside_ray_theta) / d_theta) * inside_ray_Intensity
+                    )
+                    
+                    
+                    d = ((xi - xs)**2 + (yi - ys)**2 + (zi - zs)**2)**0.5
+                    n = int(d / h) + 1
+                    
+                    dx = (xi - xs) / (n - 1)
+                    dy = (yi - ys) / (n - 1)
+                    dz = (zi - zs) / (n - 1)
+                    
+                    for point_i in range(n):
+                        i_x = int(np.floor((xs + point_i * dx - xp[0] + 0.51 * dpx) / dpx))
+                        i_y = int(np.floor((ys + point_i * dy - yp[0] + 0.51 * dpy) / dpy))
+                        i_z = int(np.floor((zs + point_i * dz - zp[0] + 0.51 * dpz) / dpz))
+                        
+                        if 0 <= i_x < mu.shape[2] and 0 <= i_y < mu.shape[1] and 0 <= i_z < mu.shape[0]:
+                            a[index_z, index_y, index_x] += mu[i_z, i_y, i_x] * h
+                        else: 
+                            a[index_z, index_y, index_x] += mu_background * h
+                            
+                    p0[index_z, index_y, index_x] = mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (4/3) * (d**3)) ** -1) * ray_intensity
+                    fluence[index_z, index_y, index_x] = np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (4/3) * (d**3)) ** -1) * ray_intensity
+            
     return p0, a, fluence

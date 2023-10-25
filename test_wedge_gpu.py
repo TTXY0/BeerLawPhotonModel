@@ -23,7 +23,7 @@ yc = np.linspace(-Ly/2 + dy/2, Ly/2 - dy/2, ny)
 
 mu = gauss_density_pattern(xc, yc, .5, Lx/10)
 mu_background = 0.2
-P0, a, fluence = mu_to_p0_gpu.mu_to_p0_cone_gpu(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4)
+P0, a, fluence = mu_to_p0_gpu.mu_to_p0_wedge_gpu(mu, mu_background, (-Lx/2, -Ly/2), dx/4, xc, yc, np.pi/4, np.pi/4)
 
 # print(a[0,0])
 # print(a[ny//2, nx//2])
