@@ -43,7 +43,7 @@ def p0_to_H_wedge(mu, p0, I, source, xc, yc, theta, direction):
 
     return H
 
-def p0_to_H_sparseH_wedge(mu, p0, I, source, xc, yc, theta, direction):
+def p0_to_sparseH_wedge(mu, p0, I, source, xc, yc, theta, direction):
     xs, ys = source
     
     n = mu.shape[0]
@@ -103,8 +103,7 @@ def p0_to_H_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
         
         vector_shift = np.array([xi - xs, yi - ys, zi - zs])
         point_angle = np.arccos(   np.dot(direction_vector, vector_shift)  /  (np.linalg.norm(direction_vector) * np.linalg.norm(vector_shift)   )   )
-        
-        #print(point_angle, theta)
+
         if  point_angle <= theta:
             outside_ray_i = int(np.ceil((point_angle) / d_theta))
             inside_ray_i = int(np.floor((point_angle) / d_theta))
@@ -115,18 +114,48 @@ def p0_to_H_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
             inside_ray_weight = abs(point_angle - outside_ray_theta) / d_theta
             outside_ray_weight = 1 - inside_ray_weight
             
-            # outside_ray_Intensity = I[outside_ray_i]
-            # inside_ray_Intensity = I[inside_ray_i]
-            
-            # ray_intensity = (
-            #     (abs(point_angle - inside_ray_theta) / d_theta) * outside_ray_Intensity
-            #     + (abs(point_angle - outside_ray_theta) / d_theta) * inside_ray_Intensity
-            # )
-            
             H[m, outside_ray_i] += column[m] * outside_ray_weight
             H[m, inside_ray_i] += column[m] * inside_ray_weight
 
     return H
 
+def p0_to_sparseH_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
 
-#Check that H_dense and H_tmp are the same.
+    xs, ys, zs = source
+    n = mu.shape[0]
+    column = p0.flatten()
+
+    d_theta = theta / (len(I) - 1)
+
+    H = lil_matrix((column.shape[0], I.shape[0]))
+
+    for m in range(H.shape[0]):
+        i = m % n
+        j = (m // n) % n
+        k = m // (n * n)
+
+        xi = xc[i]  # physical coordinates
+        yi = yc[j]
+        zi = zc[k]  # physical coordinates
+
+        vector_shift = np.array([xi - xs, yi - ys, zi - zs])
+        point_angle = np.arccos(
+            np.dot(direction_vector, vector_shift)
+            / (np.linalg.norm(direction_vector) * np.linalg.norm(vector_shift))
+        )
+
+        if point_angle <= theta:
+            outside_ray_i = int(np.ceil((point_angle) / d_theta))
+            inside_ray_i = int(np.floor((point_angle) / d_theta))
+
+            outside_ray_theta = outside_ray_i * d_theta
+            inside_ray_theta = inside_ray_i * d_theta
+
+            inside_ray_weight = abs(point_angle - outside_ray_theta) / d_theta
+            outside_ray_weight = 1 - inside_ray_weight
+
+            H[m, outside_ray_i] += column[m] * outside_ray_weight
+            H[m, inside_ray_i] += column[m] * inside_ray_weight
+
+    H = H.tocsr()
+    return H
