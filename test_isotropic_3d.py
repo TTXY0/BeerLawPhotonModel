@@ -10,6 +10,7 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     y0 = yp.mean()
     z0 = zp.mean()
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
+    density = np.transpose(density, (2, 1, 0)) #convert to zyx
     return density
 
 Lx = 50

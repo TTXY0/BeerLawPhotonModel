@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import mu_to_p0
-import plotly.graph_objs as go
-import scipy.io as sio
 
 
 def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
@@ -11,6 +9,7 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     y0 = yp.mean()
     z0 = zp.mean()
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
+    density = np.transpose(density, (2, 1, 0)) #convert to zyx
     return density
 
 Lx = 10
@@ -64,85 +63,3 @@ ax[2,0].set_ylabel("Fluence", fontsize = 20)
 
 fig.tight_layout()
 plt.savefig("wedge_MIPs")
-
-# X, Y, Z = np.meshgrid(xc, yc, zc)
-
-# matlab_filename = "wedge.mat"
-
-# # Create a dictionary to store the data with a variable name (e.g., 'volume_data')
-# data_dict = {'volume_data': P0}
-
-# # Save the dictionary as a .mat file
-# sio.savemat(matlab_filename, data_dict)
-
-# #P0
-# X, Y, Z = np.meshgrid(xc, yc, zc)
-# marker_size = 30 * P0 / np.max(P0)
-# P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-#                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(),
-#                                                color=P0.flatten(),
-#                                                colorscale='gray',
-#                                                opacity=1,
-#                                                colorbar=dict(title='Value')
-#                                    ))
-# layout = go.Layout(scene=dict(aspectmode='data'), title = "P0")
-# fig0 = go.Figure(data=[P0_Scatter], layout=layout)
-# fig0.show()
-
-# # Alpha
-# marker_size = 30 * a / np.max(a)
-# P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-#                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(),
-#                                                color=a.flatten(),
-#                                                colorscale='gray',
-#                                                opacity=1,
-#                                                colorbar=dict(title='Value')
-#                                    ))
-# layout = go.Layout(scene=dict(aspectmode='data'), title= "Alpha")
-# fig1 = go.Figure(data=[P0_Scatter], layout=layout)
-# fig1.show()
-
-# # Fluence
-# fluence = np.exp(-a)
-# marker_size = 30 * fluence / np.max(fluence)
-# P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-#                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(),
-#                                                color=fluence.flatten(),
-#                                                colorscale='viridis',
-#                                                opacity=1,
-#                                                colorbar=dict(title='Value')
-#                                    ))
-# layout = go.Layout(scene=dict(aspectmode='data'), title= "Fluence")
-# fig2 = go.Figure(data=[P0_Scatter], layout=layout)
-# fig2.show()
-
-
-# # s
-# marker_size = 30 * mask / np.max(mask)
-# P0_Scatter = go.Scatter3d(x=X.flatten(), y=Y.flatten(), z=Z.flatten(), 
-#                                    mode='markers', 
-#                                    marker=dict(size=marker_size.flatten(),
-#                                                color=mask.flatten(),
-#                                                colorscale='gray',
-#                                                opacity=1,
-#                                                colorbar=dict(title='Value'))
-#                                    )
-# layout = go.Layout(scene=dict(aspectmode='data'), title= "Mask")
-# fig3 = go.Figure(data=[P0_Scatter], layout=layout)
-# fig3.show()
-
-
-
-
-# P0_2d = np.sum(mask, axis=0)
-# plt.figure(figsize=(8, 6))
-# plt.imshow(P0_2d, cmap='gray', extent=(xc[0], xc[-1], yc[0], yc[-1]), origin='lower')
-# plt.colorbar(label='Attenuation')
-
-# plt.title("2D Projection of P0")
-# plt.xlabel("X")
-# plt.ylabel("Y")
-# plt.show()

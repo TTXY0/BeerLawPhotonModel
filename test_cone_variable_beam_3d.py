@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import mu_to_p0
-import plotly.graph_objs as go
-import scipy.io as sio
 
 
 def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
@@ -12,6 +10,7 @@ def gauss_density_pattern(xp, yp, zp, amplitude, sigma):
     z0 = zp.mean()
     density = amplitude * np.exp(-((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2))
     return density
+
 def create_gaussian_array(size, center, sigma): # for creating I
     x = np.arange(size)
     gaussian = np.exp(-((x - center) ** 2) / (2 * sigma ** 2))
