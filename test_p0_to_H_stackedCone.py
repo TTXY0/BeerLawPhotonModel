@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import mu_to_p0
+import inverse_problem
 
-#for phantom
+
 def create_blood_vessel_tube(xp, yp, zp, radius, length): 
     nx, ny, nz = xp.shape[0], yp.shape[0], zp.shape[0]
     dz = zp[1] - zp[0]
@@ -22,8 +23,6 @@ def create_blood_vessel_tube(xp, yp, zp, radius, length):
 
                 
                 distance = np.sqrt((xi - center_x)**2 + (yi - center_y)**2)
-                if k == 0 : 
-                    print(distance, xi , yi, distance < radius)
                 
                 if distance < radius:
                     phantom[i, j, k] = 1
@@ -41,9 +40,9 @@ Lx = 1
 Ly = 1
 Lz = 3
 
-nx = 20
-ny = 20
-nz = 60
+nx = 10
+ny = 10
+nz = 20
 
 dx = Lx / nx
 dy = Ly / ny
@@ -65,38 +64,27 @@ source_end = np.array([-1, 0, 1])
 direction_vector = [1,0,0]
 theta = np.pi/4
 
+I_control = np.ones(11)
 I = create_gaussian_array(11, 5, 5)
-# I_row = np.ones(11)
-# I = np.array([I_row for _ in range(nz)])
 
+P0_original, a_original, fluence_original = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I)
+P0, a, fluence = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I_control)
+shortFat_H = inverse_problem.p0_to_H_stackedCone(mu, mu_background, dx/2, P0, source_start, source_end, xc, yc, zc, direction_vector, theta, I_control)
 
+H = shortFat_H.sum(axis = 2)
+y = H.dot(I)
 
-#P0, a, fluence = mu_to_p0.mu_to_p0_wedge_variable_beam_3d(mu, mu_background, source_start, source_end, ray_direction, theta, dx/2, xc, yc, zc, I)
-P0, a, fluence = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I)
+P0_new = y.reshape(nz, ny, -1)
 
+print(P0_new.shape, "this is it here")
+fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
+ax[0].set_title("P0_new")
+ax[1].set_title("P0_original")
 
-fig, ax = plt.subplots(3, 3, figsize=(12,7), sharex= True)
-ax[0,0].set_title("Along Z axis", fontsize = 20)
-ax[0,1].set_title("Along Y axis", fontsize = 20)
-ax[0,2].set_title("Along X axis", fontsize = 20)
+ax[0].imshow(np.max(P0_new, axis = 1), cmap = "gray")
+ax[1].imshow(np.max(P0_original, axis = 1), cmap = "gray")
 
-ax[0,0].imshow(np.max(P0, axis = 0), cmap = 'gray')
-ax[0,1].imshow(np.max(P0, axis = 1), cmap = 'gray')
+print(np.allclose(P0_original, P0_new, atol= 0.00001))
 
-ax[0,2].imshow(np.max(P0, axis = 2), cmap = 'gray')
-
-ax[1,0].imshow(np.max(a, axis = 0), cmap = 'gray')
-ax[1,1].imshow(np.max(a, axis = 1), cmap = 'gray')
-ax[1,2].imshow(np.max(a, axis = 2), cmap = 'gray')
-
-ax[2,0].imshow(np.max(fluence, axis = 0), cmap = 'gray')
-ax[2,1].imshow(np.max(fluence, axis = 1), cmap = 'gray')
-ax[2,2].imshow(np.max(fluence, axis = 2), cmap = 'gray')
-
-ax[0,0].set_ylabel("P0", fontsize = 20)
-ax[1,0].set_ylabel("Alpha", fontsize = 20)
-ax[2,0].set_ylabel("Fluence", fontsize = 20)
-
-print(np.max(P0, axis = 0).shape)
 plt.show()

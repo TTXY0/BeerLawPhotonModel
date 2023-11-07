@@ -4,10 +4,10 @@ import mu_to_p0
 from scipy.sparse import lil_matrix
 
 # This is implemented with a 2d "wedge" source in mind
-def p0_to_H_wedge(mu, p0, I, source, xc, yc, theta, direction):
+def p0_to_H_wedge(p0, I, source, xc, yc, theta, direction):
     xs, ys = source
     
-    n = mu.shape[0]
+    n = p0.shape[1]
     column =  p0.flatten()
     
     theta_start = direction - (theta/2)
@@ -43,10 +43,10 @@ def p0_to_H_wedge(mu, p0, I, source, xc, yc, theta, direction):
 
     return H
 
-def p0_to_sparseH_wedge(mu, p0, I, source, xc, yc, theta, direction):
+def p0_to_sparseH_wedge(p0, I, source, xc, yc, theta, direction):
     xs, ys = source
     
-    n = mu.shape[0]
+    n = p0.shape[1]
     column =  p0.flatten()
     
     theta_start = direction - (theta/2)
@@ -81,10 +81,10 @@ def p0_to_sparseH_wedge(mu, p0, I, source, xc, yc, theta, direction):
     H = H.tocsr()
     return H
 
-def p0_to_H_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
+def p0_to_H_cone(p0, I, source, xc, yc, zc, theta, direction_vector):
     xs, ys, zs = source
     
-    n = mu.shape[0]
+    n = p0.shape[2]
     column =  p0.flatten()
     
     dim_x , dim_y  = (column.shape[0], I.shape[0])
@@ -119,16 +119,16 @@ def p0_to_H_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
 
     return H
 
-def p0_to_sparseH_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
+def p0_to_sparseH_cone(p0, I, source, xc, yc, zc, theta, direction_vector):
 
     xs, ys, zs = source
-    n = mu.shape[0]
+    n = p0.shape[2]
     column = p0.flatten()
 
     d_theta = theta / (len(I) - 1)
 
     H = lil_matrix((column.shape[0], I.shape[0]))
-
+    # print(xc.shape, yc.shape, zc.shape)
     for m in range(H.shape[0]):
         i = m % n
         j = (m // n) % n
@@ -158,4 +158,31 @@ def p0_to_sparseH_cone(mu, p0, I, source, xc, yc, zc, theta, direction_vector):
             H[m, inside_ray_i] += column[m] * inside_ray_weight
 
     H = H.tocsr()
-    return H
+    return H # returns a shape (nx * ny * nz , len(I)) matrix
+
+        
+def p0_to_H_stackedCone(mu, mu_background, h, p0, source_start, source_end, xp, yp, zp, direction_vector, theta, I):
+    H_stackedCone = np.zeros((p0.size, len(I), len(zp)))
+
+    xs, ys, zs = source_start
+    xe, ye, ze = source_end
+    dpz = zp[1] - zp[0]
+
+    if ze > zs:
+        step = dpz
+    else:
+        step = -dpz
+    z_level = min(zs, ze)
+
+    z_index = 0
+    while (ze > zs and z_level < ze) or (ze < zs and z_level > ze):
+        p0_single_cone, alpha, fluence = mu_to_p0.mu_to_p0_cone_3d(mu, mu_background, (xs, ys, z_level), h, xp, yp, zp, direction_vector, theta)
+        H_cone = p0_to_sparseH_cone(p0_single_cone, I, (xs, ys, z_level), xp, yp, zp, theta, direction_vector)
+        H_cone = H_cone.toarray()
+        
+        H_stackedCone[:, :, z_index] += H_cone
+        
+        z_index += 1
+        z_level += step
+
+    return H_stackedCone

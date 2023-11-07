@@ -45,8 +45,8 @@ direction_vector = [1,0,0]
 
 P0_original, a_original, fluence_original = mu_to_p0.mu_to_p0_cone_variable_beam_3d(mu, mu_background, source, dx/2, xc, yc, zc, direction_vector, theta, I)
 P0, a, fluence = mu_to_p0.mu_to_p0_cone_3d(mu, mu_background, source, dx/2, xc, yc, zc, direction_vector, theta)
-sparse_H = inverse_problem.p0_to_sparseH_cone(mu, P0, I, source, xc, yc, zc, theta, direction_vector)
-print(type(sparse_H))
+sparse_H = inverse_problem.p0_to_sparseH_cone(P0, I, source, xc, yc, zc, theta, direction_vector)
+print(sparse_H.shape)
 
 y = sparse_H.dot(I)
 P0_new = y.reshape(mu.shape[0], mu.shape[0], -1)
