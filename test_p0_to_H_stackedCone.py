@@ -40,9 +40,9 @@ Lx = 1
 Ly = 1
 Lz = 3
 
-nx = 10
-ny = 10
-nz = 20
+nx = 20
+ny = 20
+nz = 60
 
 dx = Lx / nx
 dy = Ly / ny
@@ -65,18 +65,22 @@ direction_vector = [1,0,0]
 theta = np.pi/4
 
 I_control = np.ones(11)
-I = create_gaussian_array(11, 5, 5)
+I = create_gaussian_array(11, 6, 5)
 
 P0_original, a_original, fluence_original = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I)
-P0, a, fluence = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I_control)
-shortFat_H = inverse_problem.p0_to_H_stackedCone(mu, mu_background, dx/2, P0, source_start, source_end, xc, yc, zc, direction_vector, theta, I_control)
+#P0, a, fluence = mu_to_p0.mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, dx/2, xc, yc, zc, direction_vector, theta, I_control)
+shortFat_H = inverse_problem.p0_to_H_stackedCone(mu, mu_background, dx/2, source_start, source_end, xc, yc, zc, direction_vector, theta, I_control)
 
-H = shortFat_H.sum(axis = 2)
-y = H.dot(I)
+
+tall_I = np.zeros((len(I) * nz))
+for z in range(nz):
+    tall_I[z * len(I): (z * len(I)) + len(I)] = I
+
+
+y = shortFat_H.dot(tall_I)
 
 P0_new = y.reshape(nz, ny, -1)
 
-print(P0_new.shape, "this is it here")
 fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
 ax[0].set_title("P0_new")

@@ -637,7 +637,6 @@ def mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, h, 
     dpz = zp[1] - zp[0]   
     
     a = np.zeros_like(mu)
-    mask = np.zeros_like(mu)
     p0 = np.zeros_like(mu)
     fluence = np.zeros_like(mu)
     

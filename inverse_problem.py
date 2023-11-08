@@ -161,8 +161,8 @@ def p0_to_sparseH_cone(p0, I, source, xc, yc, zc, theta, direction_vector):
     return H # returns a shape (nx * ny * nz , len(I)) matrix
 
         
-def p0_to_H_stackedCone(mu, mu_background, h, p0, source_start, source_end, xp, yp, zp, direction_vector, theta, I):
-    H_stackedCone = np.zeros((p0.size, len(I), len(zp)))
+def p0_to_H_stackedCone(mu, mu_background, h, source_start, source_end, xp, yp, zp, direction_vector, theta, I):
+    H_stackedCone = np.zeros((mu.size, len(I) * len(zp)))
 
     xs, ys, zs = source_start
     xe, ye, ze = source_end
@@ -180,7 +180,9 @@ def p0_to_H_stackedCone(mu, mu_background, h, p0, source_start, source_end, xp, 
         H_cone = p0_to_sparseH_cone(p0_single_cone, I, (xs, ys, z_level), xp, yp, zp, theta, direction_vector)
         H_cone = H_cone.toarray()
         
-        H_stackedCone[:, :, z_index] += H_cone
+        # print(H_cone.shape)
+        # print(H_stackedCone[:, z_index * len(I) : (z_index * len(I)) + len(I) ].shape)
+        H_stackedCone[:, z_index * len(I) : (z_index * len(I)) + len(I) ] = H_cone
         
         z_index += 1
         z_level += step
