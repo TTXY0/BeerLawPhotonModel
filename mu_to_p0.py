@@ -621,7 +621,7 @@ def mu_to_p0_cone_variable_beam_3d_mod(mu, mu_background, source, h, xp: np.arra
                             a[index_z, index_y, index_x] += mu_background * h
                     p0[index_z, index_y, index_x] += mu[index_z, index_y, index_x] * np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (4/3) * (d**3)) ** -1) * ray_intensity
                     fluence[index_z, index_y, index_x] += np.exp(-a[index_z, index_y, index_x]) * ((np.pi * (4/3) * (d**3)) ** -1) * ray_intensity
-                    
+    
     return p0, a, fluence
 
 def mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, h, xp: np.array, yp: np.array, zp: np.array, direction_vector, theta, I) : 

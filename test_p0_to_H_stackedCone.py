@@ -40,9 +40,9 @@ Lx = 1
 Ly = 1
 Lz = 3
 
-nx = 20
-ny = 20
-nz = 60
+nx = 10
+ny = 10
+nz = 20
 
 dx = Lx / nx
 dy = Ly / ny
@@ -78,6 +78,8 @@ for z in range(nz):
 
 
 y = shortFat_H.dot(tall_I)
+
+plt.bar(height= tall_I, x = range(len(tall_I)))
 
 P0_new = y.reshape(nz, ny, -1)
 
