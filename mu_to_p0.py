@@ -575,6 +575,7 @@ def mu_to_p0_cone_variable_beam_3d_mod(mu, mu_background, source, h, xp: np.arra
     
     d_theta = theta / (len(I) -1)
     
+    a = np.zeros_like(mu)
     mask = np.zeros_like(mu)
     for index_z in range(mask.shape[0]):
         for index_y in range(mask.shape[1]):
@@ -647,11 +648,14 @@ def mu_to_p0_cone_stacked_cone (mu, mu_background, source_start, source_end, h, 
 
     z_level = min(zs, ze)
     
-    
-    while (ze > zs and z_level < ze) or (ze < zs and z_level > ze):
-        
-        p0, a, fluence = mu_to_p0_cone_variable_beam_3d_mod(mu, mu_background, (xs, ys, z_level), h, xp, yp, zp, direction_vector, theta, I, p0, fluence, a)
-        z_level += step
+    for i_z in range(len(zp)) : 
+        z_level = zp[i_z]
+        if  (min(zs, ze) <= z_level <= max(zs, ze)):
+                #print("original:", z_level, ze, zs)
+                p0_cone, _, fluence_cone = mu_to_p0_cone_variable_beam_3d(mu, mu_background, (xs, ys, z_level), h, xp, yp, zp, direction_vector, theta, I)
+                p0 += p0_cone
+                fluence_cone += fluence_cone
+                z_level += step
 
     return p0, a, fluence
     

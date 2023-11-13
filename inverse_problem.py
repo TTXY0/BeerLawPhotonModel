@@ -158,17 +158,15 @@ def p0_to_sparseH_cone(p0, I, source, xc, yc, zc, theta, direction_vector):
 
         
 def p0_to_H_stackedCone(mu, mu_background, h, source_start, source_end, xp, yp, zp, direction_vector, theta, I):
-    H_stackedCone = np.zeros((mu.size, len(I) * len(zp)))
-    H_stack = None
-
+    # H_stackedCone = np.zeros((mu.size, len(I) * len(zp)))
     xs, ys, zs = source_start
     xe, ye, ze = source_end
     dpz = zp[1] - zp[0]
 
-    if ze > zs:
-        step = dpz
-    else:
-        step = -dpz
+    # if ze > zs:
+    #     step = dpz
+    # else:
+    #     step = -dpz
     
     z_level = min(zs, ze)
 
@@ -176,13 +174,20 @@ def p0_to_H_stackedCone(mu, mu_background, h, source_start, source_end, xp, yp, 
     for i_z in range(len(zp)) : 
         z_level = zp[i_z]
         
-        if  (min(zs, ze) < z_level < max(zs, ze)) :
+        # if z_level != ze or z_level != ze: 
+
+        #(min(zs, ze) <= z_level <= max(zs, ze)) and 
+        if  (min(zs, ze) <= z_level <= max(zs, ze)):
+            #print('new', z_level, (zs, ze))
+            
             p0_single_cone, alpha, fluence = mu_to_p0.mu_to_p0_cone_3d(mu, mu_background, (xs, ys, z_level), h, xp, yp, zp, direction_vector, theta)
             H_cone = p0_to_sparseH_cone(p0_single_cone, I, (xs, ys, z_level), xp, yp, zp, theta, direction_vector)
+            
             if iteration == 0 : 
                 H_stack = H_cone
             else: 
                 H_stack = hstack([H_stack, H_cone])
+            
 
         else : 
             if iteration == 0 : 
